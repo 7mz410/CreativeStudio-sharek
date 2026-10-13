@@ -392,3 +392,22 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+# Creative Studio: the macOS app and DMG volume carry our name (the executable keeps upstream's,
+# which Info.plist names). Same rule as the other apps' rebrand.py.
+PACKAGING_NAMES = {
+    'packaging/macos/package.sh': [
+        ('FigCraft.app', 'sharek.app'),
+        ('-hfs-volume-name "FigCraft"', '-hfs-volume-name "sharek"'),
+    ],
+}
+for _rel, _pairs in PACKAGING_NAMES.items():
+    _path = ROOT / _rel
+    _src = _path.read_text(encoding='utf-8')
+    _out = _src
+    for _a, _b in _pairs:
+        _out = _out.replace(_a, _b)
+    if _out != _src:
+        _path.write_text(_out, encoding='utf-8')
+        print('rebranded', _rel)
