@@ -50,6 +50,7 @@ pub mod scale_panel;
 pub mod section_panel;
 pub mod shortcuts;
 pub mod shortcuts_panel;
+pub mod studio_mark;
 pub mod style_picker;
 pub mod tabs;
 pub mod theme;
@@ -972,6 +973,8 @@ impl FigApp {
         if self.ui.icon_gallery {
             icons::gallery(&ctx);
         }
+        // Creative Studio: the Arabic interface lays out right to left (studio/RTL.md).
+        egui::set_rtl(i18n::is_rtl());
         theme::set_doc_profile(&ctx, self.session.doc().map_or(figcraft_color::ColorProfile::Srgb, |d| d.color_profile));
         widgets::set_nudge(&ctx, self.session.prefs.nudge_small, self.session.prefs.nudge_big);
         // The Inspect tab measures on hover without Alt.
@@ -994,27 +997,27 @@ impl FigApp {
         let hidden = self.session.ds().map(|d| d.view.ui_hidden).unwrap_or(false);
         tabs::tab_bar(self, ui);
         if !hidden {
-            egui::Panel::left("left_rail")
-                .exact_size(56.0)
-                .resizable(false)
-                .frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border)))
-                .show(ui, |ui| {
-                    a11y::region(&mut self.ui.nav, ui, a11y::Region::Layers, egui::accesskit::Role::Navigation, i18n::tr("Sidebar"));
-                    layers::rail(self, ui)
-                });
+            // Creative Studio: the start side is the right one in the Arabic interface.
+            let start = if egui::is_rtl() { egui::Panel::right("left_rail") } else { egui::Panel::left("left_rail") };
+            start.exact_size(56.0).resizable(false).frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border))).show(ui, |ui| {
+                a11y::region(&mut self.ui.nav, ui, a11y::Region::Layers, egui::accesskit::Role::Navigation, i18n::tr("Sidebar"));
+                layers::rail(self, ui)
+            });
         }
         // The panels are as wide as asked, less in a window too small for them and the canvas.
         let left_open = !hidden && !self.ui.left_collapsed;
         let (left_w, right_w) = fit_panels(ui.available_width(), left_open.then_some(self.ui.left_width), self.ui.right_width);
         let rows = ui.available_rect_before_wrap().y_range();
         let mut edges: Vec<(&str, f32, f32, f32)> = Vec::new();
+        let rtl = egui::is_rtl();
         if left_open {
-            edges.push(("left", ui.available_rect_before_wrap().min.x + left_w, left_w, 1.0));
-            egui::Panel::left("left_panel")
-                .resizable(false)
-                .exact_size(left_w)
-                .frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border)))
-                .show(ui, |ui| {
+            let avail = ui.available_rect_before_wrap();
+            let (x, grows) = if rtl { (avail.max.x - left_w, -1.0) } else { (avail.min.x + left_w, 1.0) };
+            edges.push(("left", x, left_w, grows));
+            let panel = if rtl { egui::Panel::right("left_panel") } else { egui::Panel::left("left_panel") };
+            panel.resizable(false).exact_size(left_w).frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border))).show(
+                ui,
+                |ui| {
                     let label = match self.ui.left_tab {
                         _ if self.ui.versions.open => i18n::tr("Version history"),
                         LeftTab::File => i18n::tr("Layers"),
@@ -1022,15 +1025,17 @@ impl FigApp {
                     };
                     a11y::region(&mut self.ui.nav, ui, a11y::Region::Layers, egui::accesskit::Role::Pane, label);
                     layers::left_panel(self, ui)
-                });
+                },
+            );
         }
         if !hidden {
-            edges.push(("right", ui.available_rect_before_wrap().max.x - right_w, right_w, -1.0));
-            egui::Panel::right("right_panel")
-                .resizable(false)
-                .exact_size(right_w)
-                .frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border)))
-                .show(ui, |ui| {
+            let avail = ui.available_rect_before_wrap();
+            let (x, grows) = if rtl { (avail.min.x + right_w, 1.0) } else { (avail.max.x - right_w, -1.0) };
+            edges.push(("right", x, right_w, grows));
+            let panel = if rtl { egui::Panel::left("right_panel") } else { egui::Panel::right("right_panel") };
+            panel.resizable(false).exact_size(right_w).frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border))).show(
+                ui,
+                |ui| {
                     let label = match self.ui.right_tab {
                         RightTab::Design => i18n::tr("Design"),
                         RightTab::Prototype => i18n::tr("Prototype"),
@@ -1038,7 +1043,8 @@ impl FigApp {
                     };
                     a11y::region(&mut self.ui.nav, ui, a11y::Region::Properties, egui::accesskit::Role::Pane, label);
                     right::right_panel(self, ui)
-                });
+                },
+            );
         }
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
             let worker = self.worker.take();

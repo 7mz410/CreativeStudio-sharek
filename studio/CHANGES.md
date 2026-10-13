@@ -14,6 +14,10 @@ this list.
   are not sent to collab.craftapps.dev (ArtCraft's public server) by default. Online sharing stays off
   until a server is entered in Preferences, or a build sets `FIGCRAFT_DEFAULT_SERVER`. Local-network
   sharing is unchanged.
-- Arabic interface (partial): `crates/ui-egui/locales/ar.toml` (core menus and tools; the rest shows in
+- Arabic interface: `crates/ui-egui/locales/ar.toml` (every string; a draft that awaits a native
+  speaker's review, see `studio/ar-work/TODO.md`), `studio/arabic_names.py` puts the Arabic name شارك in the Arabic catalogs,
+  and the interface lays out right to left (`studio/RTL.md`, `vendor/egui`).
+- The mark: the sharek star (`docs/studio/sharek.svg`, drawn by `crates/ui-egui/src/studio_mark.rs`, generated
+  by `studio/rebrand.py`) replaces the upstream chameleon tail in the logo icon and the About tile.
   English, see `studio/ar-work/TODO.md`). `studio/arabic_names.py` puts the Arabic name شارك in the Arabic catalogs.
 - Loading screen of the web version: the app's star (`studio/` splash, `apps/figcraft-web/index.html`).

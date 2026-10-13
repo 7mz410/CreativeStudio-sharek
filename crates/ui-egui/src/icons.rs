@@ -1021,16 +1021,8 @@ fn draw(p: &P, icon: Icon) {
             p.dot(8.0, 11.5, 0.9);
         }
         Logo => {
-            // FigCraft's own mark: the curled tail of the chameleon on the app icon. One bold
-            // stroke: a shaft along the bottom, then three half turns, each tighter than the last.
-            let mut tail = vec![(13.75, 13.0)];
-            tail.extend(arc_pts(7.25, 8.0, 5.0, FRAC_PI_2, 3.0 * FRAC_PI_2));
-            tail.extend(arc_pts(7.25, 6.5, 3.5, 3.0 * FRAC_PI_2, 5.0 * FRAC_PI_2));
-            tail.extend(arc_pts(7.25, 8.25, 1.75, FRAC_PI_2, 3.0 * FRAC_PI_2));
-            let v: Vec<Pos2> = tail.iter().map(|&(x, y)| p.raw(x, y)).collect();
-            p.painter.add(Shape::line(v, Stroke::new(1.7 * p.s, p.color)));
-            p.dot(13.75, 13.0, 0.85);
-            p.dot(7.25, 6.5, 0.85);
+            // Creative Studio: the sharek star, in its own colours (studio_mark.rs).
+            crate::studio_mark::paint(p.painter, egui::Rect::from_min_size(p.o, egui::vec2(16.0 * p.s, 16.0 * p.s)));
         }
     }
 }

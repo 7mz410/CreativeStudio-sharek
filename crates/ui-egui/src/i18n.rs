@@ -41,6 +41,14 @@ include!(concat!(env!("OUT_DIR"), "/locales.rs"));
 /// Index into [`LANGS`] of the language the UI shows (0: English).
 static CURRENT: AtomicUsize = AtomicUsize::new(0);
 
+/// Languages written right to left: the interface mirrors (see studio/RTL.md).
+const RTL_CODES: &[&str] = &["ar"];
+
+/// Whether the UI language is written right to left.
+pub fn is_rtl() -> bool {
+    current().is_some_and(|l| RTL_CODES.contains(&l.code))
+}
+
 /// The languages the UI can show, English first.
 pub fn languages() -> &'static [Lang] {
     LANGS

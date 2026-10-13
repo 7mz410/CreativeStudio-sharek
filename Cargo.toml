@@ -1,3 +1,7 @@
+[patch.crates-io]
+# Creative Studio: egui with a right-to-left switch for the Arabic interface (studio/RTL.md).
+egui = { path = "vendor/egui" }
+
 [workspace]
 resolver = "3"
 members = ["crates/*", "apps/*", "xtask"]
