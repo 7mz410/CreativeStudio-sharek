@@ -21,4 +21,5 @@ jobs:
       package: figcraft
       version_var: FIGCRAFT_VERSION
       bundle: FigCraft.app
+      fonts_ref: 43913056ce82a3fdad0ef69f6b88d1dc922a8104
       tag: ${{ github.ref_name }}
