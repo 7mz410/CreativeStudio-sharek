@@ -194,7 +194,7 @@ pub fn show(app: &mut FigApp, ui: &mut Ui) {
             (tr("Getting started"), "help.gettingStarted"),
             (tr("Keyboard shortcuts"), "help.shortcuts"),
             (tr("Help page"), "help.page"),
-            (tr("About FigCraft"), "help.about"),
+            (tr("About sharek"), "help.about"),
         ] {
             if crate::right::menu_item(ui, l, crate::shortcuts::shortcut(c).unwrap_or("")) {
                 app.run(c, json!({}));

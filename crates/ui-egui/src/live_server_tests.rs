@@ -52,6 +52,7 @@ fn joined(h: &mut Harness, access: Access) {
 #[test]
 fn the_publish_dialog() {
     let (mut h, _) = Harness::new();
+    h.app.session.execute("pref.publishServer", &json!({"url": "wss://share.example/"})).unwrap();
     crate::menus::invoke(&mut h.app, "collab.publish");
     h.frames(2);
     assert_eq!(h.app.ui.live.publish.as_ref().map(|f| f.name.as_str()), Some("Untitled"), "the file's name to start with");

@@ -214,7 +214,7 @@ fn mcp(attach: Option<&str>) -> CliResult<ExitCode> {
                 format!("127.0.0.1:{}", p.parse::<u16>().map_err(|_| CliError::Usage(format!("--attach needs a port number, got `{p}`")))?)
             };
             let b = figcraft_mcp::Attached::connect(&addr)
-                .map_err(|e| format!("can't reach the FigCraft app at {addr}: {e} (start it with `figcraft --control PORT`)"))?;
+                .map_err(|e| format!("can't reach the sharek app at {addr}: {e} (start it with `figcraft --control PORT`)"))?;
             Box::new(b)
         }
         None => Box::new(figcraft_mcp::Headless::new()),

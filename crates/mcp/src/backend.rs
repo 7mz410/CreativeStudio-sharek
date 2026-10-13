@@ -163,7 +163,7 @@ impl Backend for Attached {
                 self.conn = None;
                 self.roundtrip(&line).map_err(|e| {
                     self.conn = None;
-                    format!("FigCraft app at {} is not reachable: {e} (start it with `figcraft --control PORT`)", self.addr)
+                    format!("sharek app at {} is not reachable: {e} (start it with `figcraft --control PORT`)", self.addr)
                 })?
             }
         };
@@ -180,6 +180,6 @@ impl Backend for Attached {
     }
 
     fn describe(&self) -> String {
-        format!("attached to the FigCraft app at {}", self.addr)
+        format!("attached to the sharek app at {}", self.addr)
     }
 }

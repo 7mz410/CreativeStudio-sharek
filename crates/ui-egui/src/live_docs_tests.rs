@@ -76,6 +76,7 @@ fn hana() -> Peer {
 #[test]
 fn the_share_popover_is_the_session_of_the_tab_in_front() {
     let (mut h, queue) = harness();
+    h.app.session.execute("pref.publishServer", &json!({"url": "wss://share.example/"})).unwrap();
     // Start a session for the first file from its Share popover.
     let shapes = h.frames(1);
     h.click(text_center(&shapes, "Share"));

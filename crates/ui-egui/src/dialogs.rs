@@ -82,17 +82,15 @@ fn about_body(ui: &mut egui::Ui, t: &Tokens) {
         ui.painter().rect_filled(r, CornerRadius::same(10), ACCENT);
         icons::paint(ui.painter(), r.shrink(10.0), Icon::Logo, Color32::WHITE);
         ui.vertical(|ui| {
-            ui.label(RichText::new("FigCraft").font(semibold(18.0)));
+            ui.label(RichText::new("sharek").font(semibold(18.0)));
             ui.label(RichText::new(trf("Version {version}", &[("version", &VERSION)])).color(t.text_secondary));
         });
     });
     ui.add_space(12.0);
-    ui.label(tr(
-        "Interface design and prototyping. A free, open-source, clean-room design tool written from scratch in Rust, part of the ArtCraft Crafting Apps.",
-    ));
+    ui.label(tr("Part of the Creative Studio suite. Built on FigCraft by the ArtCraft team."));
     ui.add_space(8.0);
-    ui.hyperlink_to("getartcraft.com/apps/figcraft", "https://getartcraft.com/apps/figcraft");
-    ui.hyperlink_to(tr("Join us on Discord"), "https://discord.gg/artcraft");
+    ui.hyperlink_to("sharek.studio.creative.ps", "https://sharek.studio.creative.ps");
+    ui.hyperlink_to(tr("Source code on GitHub"), "https://github.com/7mz410/CreativeStudio-sharek");
     ui.add_space(8.0);
     ui.label(
         RichText::new(tr("Dual-licensed MIT OR Apache-2.0. Made by the ArtCraft team and community.")).color(t.text_secondary).font(regular(11.0)),
@@ -128,7 +126,7 @@ pub fn show(app: &mut FigApp, ctx: &Context) {
     let t = Tokens::get(ctx);
     if app.ui.about {
         let mut open = true;
-        window(tr("About FigCraft"), ctx).open(&mut open).show(ctx, |ui| {
+        window(tr("About sharek"), ctx).open(&mut open).show(ctx, |ui| {
             ui.set_width(ABOUT_WIDTH);
             tab_strip(ui, &t, &AboutTab::ALL, AboutTab::label, &mut app.ui.about_tab);
             ui.add_space(12.0);
@@ -168,7 +166,7 @@ pub fn show(app: &mut FigApp, ctx: &Context) {
             }
             // Where the app registers itself as the opener of invite links (Windows).
             if let Some(on) = app.session.invite_links_on() {
-                if crate::widgets::checkbox(ui, on, tr("Open invite links in FigCraft")) {
+                if crate::widgets::checkbox(ui, on, tr("Open invite links in sharek")) {
                     app.run("collab.registerLinks", json!({"on": !on}));
                 }
                 crate::widgets::label(
@@ -194,7 +192,7 @@ pub fn show(app: &mut FigApp, ctx: &Context) {
                     app.run("pref.publishServer", json!({"url": url}));
                 }
                 let usual = prefs.publish_server == figcraft_engine::live::DEFAULT_SERVER;
-                if crate::widgets::button(ui, tr("Reset"), false, !usual).on_hover_text(tr("Back to the FigCraft server")).clicked() {
+                if crate::widgets::button(ui, tr("Reset"), false, !usual).on_hover_text(tr("Back to the sharek server")).clicked() {
                     app.run("pref.publishServer", json!({}));
                 }
             });

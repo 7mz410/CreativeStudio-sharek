@@ -7,13 +7,13 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>FigCraft</string>
+  <string>sharek</string>
   <key>CFBundleName</key>
-  <string>FigCraft</string>
+  <string>sharek</string>
   <key>CFBundleExecutable</key>
   <string>FigCraft</string>
   <key>CFBundleIdentifier</key>
-  <string>ai.storyteller.figcraft</string>
+  <string>ps.creative.studio.sharek</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundlePackageType</key>
@@ -52,7 +52,7 @@
       <key>UTTypeIdentifier</key>
       <string>ai.storyteller.figcraft.document</string>
       <key>UTTypeDescription</key>
-      <string>FigCraft Document</string>
+      <string>sharek Document</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.data</string>
@@ -87,7 +87,7 @@
   <array>
     <dict>
       <key>CFBundleTypeName</key>
-      <string>FigCraft Document</string>
+      <string>sharek Document</string>
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>LSHandlerRank</key>

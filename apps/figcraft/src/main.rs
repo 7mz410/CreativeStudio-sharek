@@ -98,7 +98,7 @@ fn main() -> eframe::Result {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--version" || a == "-V") {
         println!(
-            "FigCraft {}{}",
+            "sharek {}{}",
             env!("CARGO_PKG_VERSION"),
             option_env!("FIGCRAFT_BUILD_SHA").filter(|s| !s.is_empty()).map(|s| format!(" ({s})")).unwrap_or_default()
         );
@@ -168,7 +168,7 @@ fn main() -> eframe::Result {
     }
     let icon = services::window_icon();
     let mut viewport = egui::ViewportBuilder::default()
-        .with_title("FigCraft")
+        .with_title("sharek")
         .with_inner_size([1440.0, 900.0])
         .with_min_inner_size([800.0, 500.0])
         .with_drag_and_drop(true);
@@ -186,5 +186,5 @@ fn main() -> eframe::Result {
     }
     let options = eframe::NativeOptions { viewport, renderer: eframe::Renderer::Wgpu, ..Default::default() };
     figcraft_ui_egui::windows::install(fig);
-    eframe::run_native("FigCraft", options, Box::new(move |_cc| Ok(Box::new(App { queue, ctx_slot, title: String::new(), recovery }))))
+    eframe::run_native("sharek", options, Box::new(move |_cc| Ok(Box::new(App { queue, ctx_slot, title: String::new(), recovery }))))
 }
