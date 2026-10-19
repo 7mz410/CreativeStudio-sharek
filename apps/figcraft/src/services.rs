@@ -1,11 +1,12 @@
 //! Desktop services: native file dialogs, clipboard, URLs, persisted preferences.
 
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use figcraft_engine::{Prefs, Session};
-use figcraft_ui_egui::{FigApp, Services};
+use figcraft_ui_egui::{DialogFuture, FigApp, Services};
 use serde_json::{Value, json};
 
 pub struct Desktop {
@@ -59,12 +60,16 @@ impl Desktop {
 
 /// The system's preferred interface languages, most preferred first, comma-separated
 /// ("nl-NL,de-DE,en-US"): Windows' language list, macOS's AppleLanguages, `LANGUAGE` and the
-/// locale variables elsewhere. The UI shows the first one it has a catalog for.
+/// locale variables elsewhere. The UI shows the first language in the list that has a catalog.
+/// Windows keeps only its first preferred language (and English when it has no catalog): that
+/// list is also the input-language list, so a language added for a keyboard (Deutsch on a Polish
+/// system) must not decide the interface language.
 fn system_language() -> Option<String> {
     #[cfg(target_os = "windows")]
     {
         windows::System::UserProfile::GlobalizationPreferences::Languages()
-            .map(|l| l.into_iter().map(|s| s.to_string()).collect::<Vec<_>>().join(","))
+            .and_then(|l| l.GetAt(0))
+            .map(|s| s.to_string())
             .inspect_err(|e| log::info!("language: can't read the system languages: {e}"))
             .ok()
     }
@@ -131,36 +136,145 @@ fn command_says(program: &str, args: &[&str], want: &str) -> bool {
         .is_some_and(|o| String::from_utf8_lossy(&o.stdout).trim() == want)
 }
 
+/// Show `path` in the file manager: selected in Finder and Explorer, its folder elsewhere.
+fn reveal(path: &Path) -> std::io::Result<()> {
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut c = std::process::Command::new("open");
+        c.arg("-R").arg(path);
+        c
+    };
+    #[cfg(windows)]
+    let mut command = {
+        let mut arg = std::ffi::OsString::from("/select,");
+        arg.push(path);
+        let mut c = std::process::Command::new("explorer");
+        c.arg(arg);
+        c
+    };
+    #[cfg(not(any(target_os = "macos", windows)))]
+    let mut command = {
+        let mut c = std::process::Command::new("xdg-open");
+        c.arg(path.parent().unwrap_or(path));
+        c
+    };
+    // The file manager keeps running; reap it off this thread so it leaves no zombie.
+    let mut child = command.spawn()?;
+    let _ = std::thread::Builder::new().name("figcraft-reveal".into()).spawn(move || child.wait());
+    Ok(())
+}
+
 /// The preferences' file in the config folder.
 const STATE: &str = "state.json";
 
-pub fn save_state(app: &FigApp) {
-    if let Some(dir) = config_dir() {
-        write_prefs(&dir, &app.session.prefs);
+/// Everything quitting keeps, all done when it returns (macOS then ends the process): the
+/// preferences in `dir`, this run's recovery copies ([`Recovery::quit`](crate::recovery::Recovery::quit))
+/// and the live sessions' ends (one this app hosts tells everyone and stops; a joined one leaves).
+pub fn shutdown(app: &mut FigApp, dir: Option<&Path>, recovery: Option<crate::recovery::Recovery>) {
+    if let Some(dir) = dir {
+        write_prefs(dir, &app.session.prefs);
     }
+    // Before the sessions end: a recovered online file's copy waits for its session's outcome.
+    if let Some(r) = recovery {
+        r.quit(&app.session, app.ui.quit);
+    }
+    drop(std::mem::take(&mut app.session.live));
 }
 
 /// Write `prefs` to `dir` atomically (a temporary file renamed over the old one: a crash leaves
-/// either version whole).
-fn write_prefs(dir: &Path, prefs: &Prefs) {
+/// either version whole). They hold online owner tokens, so on Unix only the owner can read them.
+pub(crate) fn write_prefs(dir: &Path, prefs: &Prefs) {
     let tmp = dir.join("state.json.tmp");
     let written = std::fs::create_dir_all(dir)
-        .and_then(|()| std::fs::write(&tmp, json!({"prefs": prefs}).to_string()))
+        .and_then(|()| write_private(&tmp, json!({"prefs": prefs}).to_string().as_bytes()))
         .and_then(|()| std::fs::rename(&tmp, dir.join(STATE)));
     if let Err(e) = written {
         log::warn!("preferences: couldn't save them in {}: {e}", dir.display());
     }
 }
 
+/// Write `bytes` to `path`, owner read/write only on Unix from before the first byte (a leftover
+/// file from a crash is narrowed too: the mode given at open only applies to new files).
+fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut o = std::fs::OpenOptions::new();
+    o.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut o, 0o600);
+    let mut f = o.open(path)?;
+    #[cfg(unix)]
+    f.set_permissions(std::os::unix::fs::PermissionsExt::from_mode(0o600))?;
+    f.write_all(bytes)
+}
+
+thread_local! {
+    /// While the main window draws: a dialog parented to it, so a dialog opened from it stays in
+    /// front of it (a sheet on macOS). eframe gives other windows no handle: theirs have no parent.
+    static PARENT: RefCell<Option<rfd::AsyncFileDialog>> = const { RefCell::new(None) };
+}
+
+/// Run the main window's frame `f` with the dialogs it opens parented to `frame`'s window.
+pub fn parented<R>(frame: &eframe::Frame, f: impl FnOnce() -> R) -> R {
+    PARENT.with(|p| p.replace(Some(rfd::AsyncFileDialog::new().set_parent(frame))));
+    let r = f();
+    PARENT.with(|p| p.replace(None));
+    r
+}
+
+/// A dialog with `title`, parented to the main window while it draws.
+fn dialog(title: &str) -> rfd::AsyncFileDialog {
+    PARENT.with(|p| p.borrow().clone()).unwrap_or_default().set_title(title)
+}
+
+/// The dialog opens now; its future gives the path picked.
+fn picked(pick: impl Future<Output = Option<rfd::FileHandle>> + 'static) -> DialogFuture {
+    Box::pin(async move { pick.await.map(|f| f.path().to_path_buf()) })
+}
+
+/// How long a clipboard read may wait on the app that copied (Linux and the BSDs).
+#[cfg(all(unix, not(target_os = "macos")))]
+const CLIPBOARD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// Read the clipboard. On Linux and the BSDs the read runs on a helper thread with its own handle
+/// and gives up after [`CLIPBOARD_TIMEOUT`]: a Wayland read waits on the app that copied with no
+/// timeout of its own, so an app that hangs must not hang the window too.
+#[cfg(all(unix, not(target_os = "macos")))]
+fn read_clipboard<T: Send + 'static>(_: &mut arboard::Clipboard, read: fn(&mut arboard::Clipboard) -> Option<T>) -> Option<T> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(arboard::Clipboard::new().ok().and_then(|mut c| read(&mut c)));
+    });
+    rx.recv_timeout(CLIPBOARD_TIMEOUT).ok().flatten()
+}
+
+/// Read the clipboard (the system's own reads don't wait on the app that copied).
+#[cfg(not(all(unix, not(target_os = "macos"))))]
+fn read_clipboard<T>(c: &mut arboard::Clipboard, read: fn(&mut arboard::Clipboard) -> Option<T>) -> Option<T> {
+    read(c)
+}
+
+/// Native Save as filters; other callers keep their existing combined filter.
+fn save_filters<'a>(exts: &'a [&'a str]) -> Vec<(&'static str, &'a [&'a str])> {
+    if exts == ["figcraft", "fig"] {
+        vec![("FigCraft (.figcraft)", &exts[..1]), (figcraft_ui_egui::i18n::tr(".fig (experimental)"), &exts[1..])]
+    } else {
+        vec![("File", exts)]
+    }
+}
+
 impl Services for Desktop {
-    fn pick_open(&mut self, title: &str, exts: &[&str]) -> Option<PathBuf> {
-        rfd::FileDialog::new().set_title(title).add_filter("Supported files", exts).pick_file()
+    fn pick_open(&mut self, title: &str, exts: &[&str]) -> DialogFuture {
+        picked(dialog(title).add_filter("Supported files", exts).pick_file())
     }
-    fn pick_save(&mut self, title: &str, name: &str, exts: &[&str]) -> Option<PathBuf> {
-        rfd::FileDialog::new().set_title(title).set_file_name(name).add_filter("File", exts).save_file()
+    fn pick_save(&mut self, title: &str, name: &str, exts: &[&str]) -> DialogFuture {
+        let mut dialog = dialog(title).set_file_name(name);
+        for (label, extensions) in save_filters(exts) {
+            dialog = dialog.add_filter(label, extensions);
+        }
+        picked(dialog.save_file())
     }
-    fn pick_folder(&mut self, title: &str) -> Option<PathBuf> {
-        rfd::FileDialog::new().set_title(title).pick_folder()
+    fn pick_folder(&mut self, title: &str) -> DialogFuture {
+        picked(dialog(title).pick_folder())
     }
     fn clipboard_set_text(&mut self, s: &str) {
         if let Some(c) = self.clipboard.as_mut() {
@@ -168,7 +282,10 @@ impl Services for Desktop {
         }
     }
     fn clipboard_get_text(&mut self) -> Option<String> {
-        self.clipboard.as_mut()?.get_text().ok()
+        read_clipboard(self.clipboard.as_mut()?, |c| c.get_text().ok())
+    }
+    fn clipboard_get_html(&mut self) -> Option<String> {
+        read_clipboard(self.clipboard.as_mut()?, |c| c.get().html().ok())
     }
     fn clipboard_set_png(&mut self, w: u32, h: u32, rgba: &[u8]) {
         if let Some(c) = self.clipboard.as_mut() {
@@ -176,7 +293,7 @@ impl Services for Desktop {
         }
     }
     fn clipboard_get_image(&mut self) -> Option<(u32, u32, Vec<u8>)> {
-        let img = self.clipboard.as_mut()?.get_image().ok()?;
+        let img = read_clipboard(self.clipboard.as_mut()?, |c| c.get_image().ok())?;
         let (w, h) = (u32::try_from(img.width).ok()?, u32::try_from(img.height).ok()?);
         // Refuse absurd sizes (and mismatched buffers) rather than allocate.
         if w == 0 || h == 0 || u64::from(w) * u64::from(h) > 100_000_000 || img.bytes.len() != (w as usize) * (h as usize) * 4 {
@@ -187,6 +304,11 @@ impl Services for Desktop {
     fn open_url(&mut self, url: &str) {
         let _ = webbrowser::open(url);
     }
+    fn reveal_path(&mut self, path: &Path) {
+        if let Err(e) = reveal(path) {
+            log::warn!("show in folder: {}: {e}", path.display());
+        }
+    }
     fn save_prefs(&mut self, prefs: &Prefs) {
         if let Some(dir) = &self.dir {
             write_prefs(dir, prefs);
@@ -195,6 +317,8 @@ impl Services for Desktop {
     fn emergency_save(&mut self, session: &Session) {
         if let Some(r) = crate::recovery::lock(&self.recovery).as_mut() {
             r.write(session, true);
+            // Earlier runs' copies now covered go, so the next start doesn't open them twice.
+            r.settle(session);
         }
     }
     fn reduce_motion(&self) -> bool {
@@ -218,4 +342,25 @@ pub fn window_icon() -> Option<egui::IconData> {
     let img = image::load_from_memory(bytes).ok()?.to_rgba8();
     let (w, h) = img.dimensions();
     Some(egui::IconData { rgba: img.into_raw(), width: w, height: h })
+}
+
+#[cfg(test)]
+mod save_filter_tests {
+    use super::save_filters;
+
+    #[test]
+    fn native_and_fig_save_filters_are_separate_with_native_first() {
+        let extensions = ["figcraft", "fig"];
+        assert_eq!(
+            save_filters(&extensions),
+            vec![("FigCraft (.figcraft)", &extensions[..1]), (figcraft_ui_egui::i18n::tr(".fig (experimental)"), &extensions[1..])]
+        );
+    }
+
+    #[test]
+    fn other_save_filters_keep_one_combined_group() {
+        for extensions in [&["figcraft"][..], &["fig"][..], &["png"][..], &["png", "jpg", "webp"][..], &[][..]] {
+            assert_eq!(save_filters(extensions), vec![("File", extensions)]);
+        }
+    }
 }

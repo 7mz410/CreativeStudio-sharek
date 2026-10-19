@@ -10,7 +10,7 @@ exclude = ["plugins"]
 # default-members = ["crates/*", "apps/figcraft", "apps/figcraft-cli", "xtask"]
 
 [workspace.package]
-version = "0.5.1"
+version = "0.7.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
@@ -35,6 +35,9 @@ figcraft-ui-egui = { path = "crates/ui-egui" }
 figcraft-mcp = { path = "crates/mcp" }
 figcraft-collab-net = { path = "crates/collab-net" }
 figcraft-plugin = { path = "crates/plugin" }
+
+# Which paths stored in a document may be followed (craft-libs).
+craft-docpath = { version = "0.1.0", git = "https://github.com/storytold/craft-libs", rev = "82a24b006eefa036b43c09a67fb9a3fbd17ffe63" }
 
 # foundation
 kurbo = { version = "0.13", features = ["serde"] }
@@ -63,7 +66,7 @@ linesweeper = "0.4"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 # `.fig` import: raw deflate chunks (already built for zip) and zstd chunks (pure Rust, MIT, wasm-safe).
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
-ruzstd = { version = "0.9", default-features = false, features = ["std"] }
+ruzstd = { version = "0.9.1", default-features = false, features = ["std"] }
 sha2 = "0.10"
 base64 = "0.22"
 crc32fast = "1"

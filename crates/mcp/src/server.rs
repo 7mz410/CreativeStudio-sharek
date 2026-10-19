@@ -1,6 +1,9 @@
 //! JSON-RPC 2.0 framing and the MCP lifecycle / tools / resources / prompts methods.
 
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
+use std::sync::Arc;
+
+use figcraft_engine::file_access::{Roots, confined};
 
 use serde_json::{Value, json};
 
@@ -42,6 +45,9 @@ Resources: figcraft://document, figcraft://node/{id}, figcraft://command/{id}. p
 pub struct Server {
     backend: Box<dyn Backend>,
     initialized: bool,
+    /// The automation roots every request's file access is confined to (`--automation-read-root`,
+    /// `--automation-write-root`), if any.
+    roots: Option<Arc<Roots>>,
 }
 
 fn response(id: Value, result: Value) -> Value {
@@ -58,7 +64,14 @@ fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
 
 impl Server {
     pub fn new(backend: Box<dyn Backend>) -> Self {
-        Self { backend, initialized: false }
+        Self { backend, initialized: false, roots: None }
+    }
+
+    /// Confine the files every request reads and writes to `roots` (see
+    /// [`figcraft_engine::file_access`]).
+    pub fn with_roots(mut self, roots: Option<Roots>) -> Self {
+        self.roots = roots.map(Arc::new);
+        self
     }
 
     /// A server over a fresh headless session.
@@ -76,10 +89,22 @@ impl Server {
     }
 
     /// Serve newline-delimited JSON-RPC until `input` closes. stdout is the protocol stream; logs
-    /// go to stderr.
-    pub fn serve(&mut self, input: impl BufRead, mut output: impl Write) -> std::io::Result<()> {
-        for line in input.split(b'\n') {
-            let line = line?;
+    /// go to stderr. An oversized frame gets an error and closes the stream without draining it.
+    pub fn serve(&mut self, mut input: impl BufRead, mut output: impl Write) -> std::io::Result<()> {
+        let mut line = Vec::new();
+        loop {
+            line.clear();
+            if (&mut input).take((MAX_LINE + 1) as u64).read_until(b'\n', &mut line)? == 0 {
+                break;
+            }
+            if line.last() == Some(&b'\n') {
+                line.pop();
+            }
+            if line.len() > MAX_LINE {
+                writeln!(output, "{}", error(Value::Null, INVALID_REQUEST, "message too large"))?;
+                output.flush()?;
+                break;
+            }
             let text = String::from_utf8_lossy(&line);
             if let Some(reply) = self.handle_line(&text) {
                 output.write_all(reply.as_bytes())?;
@@ -92,12 +117,12 @@ impl Server {
 
     /// Handle one line; returns the reply line (None for notifications and blank lines).
     pub fn handle_line(&mut self, line: &str) -> Option<String> {
+        if line.len() > MAX_LINE {
+            return Some(error(Value::Null, INVALID_REQUEST, "message too large").to_string());
+        }
         let line = line.trim();
         if line.is_empty() {
             return None;
-        }
-        if line.len() > MAX_LINE {
-            return Some(error(Value::Null, INVALID_REQUEST, "message too large").to_string());
         }
         let reply = match serde_json::from_str::<Value>(line) {
             Ok(Value::Array(batch)) => {
@@ -138,13 +163,21 @@ impl Server {
             return Some(error(id, INVALID_PARAMS, "`params` must be an object"));
         }
         // A bug that panics fails this request only; the server keeps serving.
-        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| self.request(method, &params))).unwrap_or_else(|p| {
-            Err((INTERNAL_ERROR, format!("internal error in `{method}`: {} (please report this bug)", panic_message(p.as_ref()))))
-        });
+        let roots = self.roots.clone();
+        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| confined(roots.as_ref(), || self.request(method, &params)))).unwrap_or_else(
+            |p| Err((INTERNAL_ERROR, format!("internal error in `{method}`: {} (please report this bug)", panic_message(p.as_ref())))),
+        );
         Some(match r {
             Ok(r) => response(id, r),
             Err((code, m)) => error(id, code, m),
         })
+    }
+
+    /// What `initialize` says about the automation roots.
+    fn roots_note(&self) -> String {
+        let Some(r) = &self.roots else { return String::new() };
+        let j = r.to_json();
+        format!(" Files: only these folders may be read: {}; written: {} (any other path is refused).", j["read"], j["write"])
     }
 
     fn notification(&mut self, method: &str) {
@@ -168,7 +201,7 @@ impl Server {
                         "prompts": {"listChanged": false},
                     },
                     "serverInfo": {"name": "figcraft", "title": "FigCraft", "version": env!("CARGO_PKG_VERSION")},
-                    "instructions": format!("{INSTRUCTIONS} Backend: {}.", self.backend.describe()),
+                    "instructions": format!("{INSTRUCTIONS} Backend: {}.{}", self.backend.describe(), self.roots_note()),
                 }))
             }
             "ping" => Ok(json!({})),

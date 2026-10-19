@@ -396,7 +396,7 @@ pub fn connect_section(app: &mut FigApp, ui: &mut Ui, doc: &Document, id: NodeId
         let text = if connectable {
             tr("Link this component to its code component: instances then show your real snippet with their values.")
         } else {
-            tr("Choose React, SwiftUI or Compose above to connect this component to its code.")
+            tr("Choose React, Leptos, SwiftUI or Compose above to connect this component to its code.")
         };
         widgets::note(ui, text, t.text_secondary);
         return;
@@ -635,8 +635,9 @@ pub fn dev_resources_section(app: &mut FigApp, ui: &mut Ui, doc: &Document, id: 
         };
         ui.painter().text(pos2(x, r.center().y + 7.0), Align2::LEFT_CENTER, widgets::elide(ui, &below, text_w), regular(10.0), t.text_secondary);
         crate::a11y::link(&resp, name);
-        // Opened only on a click, never fetched.
-        if resp.on_hover_text(url.as_str()).clicked() {
+        // Opened only on a click, never fetched, and a dev resource's URL comes from the
+        // document, so only a web link opens.
+        if resp.on_hover_text(url.as_str()).clicked() && figcraft_engine::doc_urls::openable(url) {
             ui.ctx().open_url(egui::OpenUrl::new_tab(url));
         }
         if let Some(i) = item.index {

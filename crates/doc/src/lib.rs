@@ -21,6 +21,7 @@ pub mod styles;
 pub mod text;
 pub mod vector;
 pub mod vector_faces;
+pub mod vector_regions;
 
 pub use colors::*;
 pub use comments::*;
@@ -76,17 +77,19 @@ pub enum DocError {
 
 pub type DocResult<T> = Result<T, DocError>;
 
-/// The set of touched node ids, and whether any layer is a mask (worked out when first asked
-/// after a change: hit testing skips its mask checks without one). Never part of equality or
+/// The set of touched node ids, whether any layer is a mask (hit testing skips its mask checks
+/// without one) and the largest background blur radius (renders keep that much overlap between
+/// their bands), both worked out when first asked after a change. Never part of equality or
 /// serialisation.
 #[derive(Clone, Debug, Default)]
-pub struct Dirty(pub std::collections::BTreeSet<NodeId>, std::sync::OnceLock<bool>);
+pub struct Dirty(pub std::collections::BTreeSet<NodeId>, std::sync::OnceLock<bool>, std::sync::OnceLock<f64>);
 
 impl Dirty {
     /// Record node `id` as touched (edited, added or removed).
     fn touch(&mut self, id: NodeId) {
         self.0.insert(id);
         self.1 = std::sync::OnceLock::new();
+        self.2 = std::sync::OnceLock::new();
     }
 }
 
@@ -251,6 +254,11 @@ impl Document {
     /// Whether any layer of the document is a mask.
     pub fn has_masks(&self) -> bool {
         *self.dirty.1.get_or_init(|| self.nodes.values().any(|n| n.is_mask))
+    }
+
+    /// The largest background blur or glass radius of any layer's effects (0 without any).
+    pub fn max_backdrop_radius(&self) -> f64 {
+        *self.dirty.2.get_or_init(|| self.nodes.values().flat_map(|n| n.effects.iter()).map(Effect::backdrop_radius).fold(0.0, f64::max))
     }
 
     /// Node ids touched so far (without clearing).
@@ -780,6 +788,23 @@ impl Document {
         self.paste_nodes(&src_nodes, &map, id, parent, index)
     }
 
+    /// Deep-copy each of `ids`' subtrees to the end of `parent`, in order, returning the new root
+    /// ids. One id map covers every copy, so references between the copied subtrees (a navigation
+    /// from one copied frame to another) point at the copies.
+    pub fn duplicate_all_into(&mut self, ids: &[NodeId], parent: NodeId) -> DocResult<Vec<NodeId>> {
+        let mut map = BTreeMap::new();
+        let mut trees = Vec::with_capacity(ids.len());
+        for &id in ids {
+            let src_nodes: Vec<Node> = self.subtree(id).into_iter().filter_map(|i| self.node(i).cloned()).collect();
+            for n in &src_nodes {
+                let nid = self.alloc_id();
+                map.insert(n.id, nid);
+            }
+            trees.push((id, src_nodes));
+        }
+        trees.into_iter().map(|(id, src_nodes)| self.paste_nodes(&src_nodes, &map, id, parent, None)).collect()
+    }
+
     /// Insert copies of `nodes` (a subtree rooted at `root`, from this or another document) with ids
     /// remapped by `map`. Interactions, instance references and pattern sources pointing inside the
     /// subtree are remapped too.
@@ -902,15 +927,22 @@ impl Document {
     /// A unique name like "Frame 3" for a new node of a kind.
     pub fn next_name(&self, base: &str) -> String {
         let mut max = 0u64;
+        let mut taken = std::collections::BTreeSet::new();
         for n in self.nodes() {
             if let Some(rest) = n.name.strip_prefix(base)
                 && let Some(num) = rest.strip_prefix(' ')
                 && let Ok(k) = num.parse::<u64>()
             {
                 max = max.max(k);
+                taken.insert(k);
             }
         }
-        format!("{base} {}", max + 1)
+        let next = match max.checked_add(1) {
+            Some(next) => next,
+            // The counter is spent: the lowest free number instead of wrapping onto a name.
+            None => (1u64..).find(|k| !taken.contains(k)).unwrap_or(1),
+        };
+        format!("{base} {next}")
     }
 
     pub fn style(&self, id: &str) -> Option<&Style> {
@@ -939,7 +971,11 @@ impl Document {
             if n.id != *id {
                 issues.push(format!("node key {id} has id {}", n.id));
             }
+            let mut seen = std::collections::BTreeSet::new();
             for c in &n.children {
+                if !seen.insert(*c) {
+                    issues.push(format!("child {c} listed twice in {id}"));
+                }
                 match self.node(*c) {
                     Some(cn) if cn.parent == Some(*id) => {}
                     Some(_) => issues.push(format!("child {c} of {id} has another parent")),
@@ -956,8 +992,30 @@ impl Document {
             if n.is_page() != listed {
                 issues.push(format!("page list mismatch for {id}"));
             }
+            if n.is_page() && n.parent.is_some() {
+                issues.push(format!("page {id} has a parent"));
+            }
+        }
+        let reachable = self.reachable();
+        for id in self.nodes.keys().filter(|k| !reachable.contains(*k)) {
+            issues.push(format!("{id} is not under a page (cycle or detached)"));
         }
         issues
+    }
+
+    /// Every node reachable from a page through reciprocal parent/child links, each once (cycles
+    /// and repeated children are walked once, so this is linear in the node count).
+    fn reachable(&self) -> std::collections::BTreeSet<NodeId> {
+        let mut seen = std::collections::BTreeSet::new();
+        let mut stack: Vec<NodeId> = self.nodes.iter().filter(|(_, n)| n.is_page() && n.parent.is_none()).map(|(k, _)| *k).collect();
+        while let Some(id) = stack.pop() {
+            if !seen.insert(id) {
+                continue;
+            }
+            let Some(n) = self.nodes.get(&id) else { continue };
+            stack.extend(n.children.iter().filter(|c| !seen.contains(*c) && self.nodes.get(*c).is_some_and(|cn| cn.parent == Some(id))));
+        }
+        seen
     }
 
     /// Repair what [`validate`](Self::validate) reports (lenient loading of untrusted files).
@@ -967,34 +1025,30 @@ impl Document {
             if let Some(n) = self.nodes.get_mut(id) {
                 let n = Arc::make_mut(n);
                 n.id = *id;
+                // Pages are roots.
+                if n.is_page() {
+                    n.parent = None;
+                }
             }
         }
-        // Drop dangling children and children claimed by another parent.
+        // Drop dangling children, children claimed by another parent and repeats.
         let parents: BTreeMap<NodeId, Option<NodeId>> = self.nodes.iter().map(|(k, n)| (*k, n.parent)).collect();
         for id in &ids {
             let Some(n) = self.nodes.get(id) else { continue };
-            let keep: Vec<NodeId> = n.children.iter().copied().filter(|c| parents.get(c).copied().flatten() == Some(*id)).collect();
+            let mut seen = std::collections::BTreeSet::new();
+            let keep: Vec<NodeId> =
+                n.children.iter().copied().filter(|c| parents.get(c).copied().flatten() == Some(*id) && seen.insert(*c)).collect();
             if keep != n.children
                 && let Some(n) = self.nodes.get_mut(id)
             {
                 Arc::make_mut(n).children = keep;
             }
         }
-        // Orphans (parent missing or not listing them) are removed.
-        loop {
-            let orphan = self.nodes.iter().find_map(|(k, n)| {
-                if n.is_page() {
-                    return None;
-                }
-                match n.parent {
-                    Some(p) if self.nodes.get(&p).is_some_and(|pn| pn.children.contains(k)) => None,
-                    _ => Some(*k),
-                }
-            });
-            let Some(o) = orphan else { break };
-            for d in self.subtree(o) {
-                self.nodes.remove(&d);
-            }
+        // Nodes not under a page (orphans, detached subtrees, cycles) are removed.
+        let reachable = self.reachable();
+        let gone: Vec<NodeId> = self.nodes.keys().filter(|k| !reachable.contains(*k)).copied().collect();
+        for k in gone {
+            self.nodes.remove(&k);
         }
         // Snapshots of layers that are gone or no longer changed since marked ready for dev, or that
         // don't start with their layer, are dropped.
@@ -1070,8 +1124,14 @@ impl Document {
     /// mask with the layers above it up to the next mask, or a single layer. An auto layout frame
     /// whose first child paints on top paints the runs in reverse (see [`Node::paint_order`]).
     pub fn paint_runs(&self, n: &Node) -> Vec<std::ops::Range<usize>> {
-        let kids = &n.children;
-        let node = |i: usize| kids.get(i).and_then(|k| self.node(*k));
+        let kids: Vec<Option<&Node>> = n.children.iter().map(|k| self.node(*k)).collect();
+        Self::paint_runs_of(&kids, n.layout.as_ref().is_some_and(|l| l.reverse_z))
+    }
+
+    /// [`Self::paint_runs`] of children already looked up (`None`: not in the document), last run
+    /// first when `reverse_z`.
+    pub fn paint_runs_of(kids: &[Option<&Node>], reverse_z: bool) -> Vec<std::ops::Range<usize>> {
+        let node = |i: usize| kids.get(i).copied().flatten();
         let mut runs = Vec::new();
         let mut i = 0;
         while i < kids.len() {
@@ -1084,7 +1144,7 @@ impl Document {
             runs.push(i..j);
             i = j;
         }
-        if n.layout.as_ref().is_some_and(|l| l.reverse_z) {
+        if reverse_z {
             runs.reverse();
         }
         runs
@@ -1129,6 +1189,8 @@ mod proto_expr_parse_tests;
 mod proto_expr_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod vector_regions_tests;
 #[cfg(test)]
 mod width_sides_tests;
 #[cfg(test)]

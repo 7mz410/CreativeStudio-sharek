@@ -21,3 +21,5 @@ this list.
   by `studio/rebrand.py`) replaces the upstream chameleon tail in the logo icon and the About tile.
   English, see `studio/ar-work/TODO.md`). `studio/arabic_names.py` puts the Arabic name شارك in the Arabic catalogs.
 - Loading screen of the web version: the app's star (`studio/` splash, `apps/figcraft-web/index.html`).
+- Import report: the warning about image filters names sharek (`crates/format/src/rest/props.rs`), and the
+  Spanish catalog carries the two new credit lines in English-to-Spanish form (`studio/rebrand.py`).

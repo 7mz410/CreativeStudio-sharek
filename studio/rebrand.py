@@ -140,6 +140,10 @@ RULES = [
         icons::paint(ui.painter(), r.shrink(10.0), Icon::Logo, Color32::WHITE);''',
      '''        ui.painter().rect_filled(r, CornerRadius::same(10), Color32::WHITE);
         icons::paint(ui.painter(), r.shrink(10.0), Icon::Logo, Color32::WHITE);'''),
+    # The import report's warning (shown to the user; the crate is outside RUST_DIRS).
+    ('crates/format/src/rest/props.rs',
+     "cx.warn(\"image filters use FigCraft's approximate renderer\");",
+     "cx.warn(\"image filters use sharek's approximate renderer\");"),
 ]
 
 # The locale catalogs: the About text is a new key (its English is the new text; other
@@ -148,6 +152,12 @@ LOCALE_DROP = ('"Join us on Discord" =', f'"{ABOUT_OLD}" =')
 LOCALE_ADD_EN = [
     f'"{ABOUT_NEW}" = "{ABOUT_NEW}"',
     '"Source code on GitHub" = "Source code on GitHub"',
+]
+
+# Spanish is a complete catalog (i18n_tests COMPLETE), so its two new lines are written here.
+LOCALE_ADD_ES = [
+    f'"{ABOUT_NEW}" = "Parte de la suite Creative Studio. Creada sobre {UP} por el equipo de ArtCraft."',
+    '"Source code on GitHub" = "Código fuente en GitHub"',
 ]
 
 STRING = re.compile(r'"(?:[^"\\\n]|\\.)*"')
@@ -214,6 +224,10 @@ def rename_sources() -> list:
         o = '\n'.join(lines)
         if p.stem == 'en':
             for add in LOCALE_ADD_EN:
+                if add.split(' = ')[0] not in o:
+                    o = _insert_after_ui(o, add)
+        if p.stem == 'es':
+            for add in LOCALE_ADD_ES:
                 if add.split(' = ')[0] not in o:
                     o = _insert_after_ui(o, add)
         if o != s:

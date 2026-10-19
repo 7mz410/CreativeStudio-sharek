@@ -22,10 +22,9 @@ pub trait Backend {
     fn describe(&self) -> String;
 
     /// PNG bytes of the document: `ids` (in page coordinates, their union) or, when empty, the
-    /// current page's content. The default goes through `ui.render` and a temporary file.
+    /// current page's content. The default goes through `ui.render`, the PNG coming back as data.
     fn render_png(&mut self, ids: &[u64], scale: f64) -> Result<Vec<u8>, String> {
-        let path = temp_png("render");
-        let mut params = json!({"path": path, "scale": scale});
+        let mut params = json!({"scale": scale});
         if !ids.is_empty() {
             params["ids"] = json!(ids);
         } else {
@@ -36,8 +35,7 @@ pub trait Backend {
             }
             params["ids"] = json!(kids);
         }
-        self.call("ui.render", params)?;
-        read_and_remove(&path)
+        decode_data(&self.call("ui.render", params)?)
     }
 
     /// PNG bytes of what the user sees: the app window when attached, the current viewport when
@@ -52,11 +50,10 @@ pub trait Backend {
     }
 }
 
-fn capture<B: Backend + ?Sized>(b: &mut B, mut params: Value) -> Result<Vec<u8>, String> {
-    let path = temp_png("screenshot");
-    params["path"] = json!(path);
-    b.call("ui.screenshot", params)?;
-    read_and_remove(&path)
+/// A window capture, the PNG coming back as data (no file: an app confined to automation roots
+/// writes none outside them).
+fn capture<B: Backend + ?Sized>(b: &mut B, params: Value) -> Result<Vec<u8>, String> {
+    decode_data(&b.call("ui.screenshot", params)?)
 }
 
 /// The ids of the current page's top-level layers.
@@ -70,17 +67,6 @@ pub fn page_children<B: Backend + ?Sized>(b: &mut B) -> Result<Vec<u64>, String>
         .and_then(Value::as_array)
         .map(|a| a.iter().filter_map(|c| c.get("id").and_then(Value::as_u64)).collect())
         .unwrap_or_default())
-}
-
-fn temp_png(what: &str) -> String {
-    let n = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
-    std::env::temp_dir().join(format!("figcraft-mcp-{what}-{}-{n}.png", std::process::id())).to_string_lossy().into_owned()
-}
-
-fn read_and_remove(path: &str) -> Result<Vec<u8>, String> {
-    let bytes = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
-    let _ = std::fs::remove_file(path);
-    Ok(bytes)
 }
 
 /// Decode a `data` field (base64, optionally a data: URL) from an export result.
@@ -133,10 +119,20 @@ impl Attached {
         Err(last)
     }
 
-    fn roundtrip(&mut self, line: &str) -> std::io::Result<String> {
-        if self.conn.is_none() {
-            self.reconnect()?;
+    /// The app already closed this connection (it drops ones idle past its socket timeout), or
+    /// left bytes on it nobody asked for. Checked before a request is written, when replacing the
+    /// connection can't repeat anything.
+    fn stale(&mut self) -> bool {
+        let Some((reader, writer)) = self.conn.as_mut() else { return false };
+        if !reader.buffer().is_empty() || writer.set_nonblocking(true).is_err() {
+            return true;
         }
+        // Nothing to read on a healthy idle connection: the peek would block.
+        let idle = matches!(writer.peek(&mut [0]), Err(e) if e.kind() == std::io::ErrorKind::WouldBlock);
+        writer.set_nonblocking(false).is_err() || !idle
+    }
+
+    fn roundtrip(&mut self, line: &str) -> std::io::Result<String> {
         let Some((reader, writer)) = self.conn.as_mut() else {
             return Err(std::io::Error::new(std::io::ErrorKind::NotConnected, "not connected to the app"));
         };
@@ -156,17 +152,19 @@ impl Backend for Attached {
         let id = self.next_id;
         self.next_id += 1;
         let line = json!({"id": id, "method": method, "params": params}).to_string();
-        // One retry with a fresh connection (the app may have restarted).
-        let reply = match self.roundtrip(&line) {
-            Ok(r) => r,
-            Err(_) => {
-                self.conn = None;
-                self.roundtrip(&line).map_err(|e| {
-                    self.conn = None;
-                    format!("sharek app at {} is not reachable: {e} (start it with `figcraft --control PORT`)", self.addr)
-                })?
-            }
-        };
+        if self.conn.is_none() || self.stale() {
+            self.reconnect().map_err(|e| {
+                format!("sharek app at {} is not reachable: {e} (request was not sent; start it with `figcraft --control PORT`)", self.addr)
+            })?;
+        }
+        // A lost reply does not mean the app failed to apply the request.
+        let reply = self.roundtrip(&line).map_err(|e| {
+            self.conn = None;
+            format!(
+                "sharek control call `{method}` at {} failed: {e}; the operation may have completed. Inspect the document before retrying.",
+                self.addr
+            )
+        })?;
         let v: Value = serde_json::from_str(reply.trim()).map_err(|e| format!("bad reply from the app: {e}"))?;
         if v.get("ok").and_then(Value::as_bool) == Some(true) {
             Ok(v.get("result").cloned().unwrap_or(Value::Null))
