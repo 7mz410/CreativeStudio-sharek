@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Apply the sharek (Creative Studio) branding on top of upstream FigCraft.
 
-Only user-visible text is rebranded; crate names, the file format (`.figcraft`), settings folders
-and the copyright and licence lines keep their upstream names, so `git merge upstream/main` stays
-easy. The script is idempotent: after merging upstream, resolve any conflicts in favour of upstream
-and run it again.
+Only user-visible text is rebranded; crate names, settings folders and the copyright and licence
+lines keep their upstream names, so `git merge upstream/main` stays easy. The one exception is the
+document extension: documents save as `.sharek` (EXT_RULES), and `.figcraft` and `.fig` still open.
+The script is idempotent: after merging upstream, resolve any conflicts in favour of upstream and run
+it again.
 
     python3 studio/rebrand.py
 
@@ -395,8 +396,236 @@ def _insert_after_ui(text: str, line: str) -> str:
     return '\n'.join(out)
 
 
+# ---- The document extension: `.sharek` ----------------------------------------------------------
+# Creative Studio saves documents as `.sharek` (the same contents as `.figcraft`, which still opens,
+# and `.fig`, which still opens too). Applied after the general rename, so every text is the
+# renamed one. Each rule is skipped once its new text is in the file.
+EXT_NEW_UTI = '''  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <!-- sharek's document: the same JSON-and-zip file as .figcraft, saved with the .sharek extension. -->
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>ps.creative.studio.sharek.document</string>
+      <key>UTTypeDescription</key>
+      <string>sharek Document</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+        <string>public.content</string>
+      </array>
+      <key>UTTypeIconFile</key>
+      <string>sharek-document</string>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array><string>sharek</string></array>
+        <key>public.mime-type</key>
+        <array><string>application/x-sharek</string></array>
+      </dict>
+    </dict>
+'''
+EXT_NEW_PROGID = '''        <!-- .sharek: sharek's own format (the same contents as .figcraft); sharek is its default app. -->
+        <ProgId Id="Sharek.Document" Description="sharek Document" Icon="FigcraftExe" IconIndex="0">
+          <Extension Id="sharek" ContentType="application/x-sharek">
+            <Verb Id="open" Command="Open" TargetFile="FigcraftExe" Argument="&quot;%1&quot;" />
+          </Extension>
+        </ProgId>
+'''
+EXT_NEW_MIME = '''  <mime-type type="application/x-sharek">
+    <comment>sharek document</comment>
+    <icon name="ai.storyteller.figcraft"/>
+    <glob pattern="*.sharek"/>
+  </mime-type>
+'''
+EXT_RULES = [
+    ('crates/format/src/lib.rs',
+     'pub const EXTENSION: &str = "figcraft";\n',
+     'pub const EXTENSION: &str = "figcraft";\n'
+     '/// sharek saves documents as `.sharek` (the same contents as `.figcraft`, which still opens).\n'
+     'pub const STUDIO_EXTENSION: &str = "sharek";\n'),
+    ('crates/format/src/thumbnail.rs',
+     '"figcraft" => FileKind::FigCraft,',
+     '"sharek" | "figcraft" => FileKind::FigCraft,'),
+    ('crates/engine/src/cmd/file.rs',
+     'matches!(ext(&path).as_str(), "figcraft" | "json")',
+     'matches!(ext(&path).as_str(), "sharek" | "figcraft" | "json")'),
+    ('crates/engine/src/cmd/file.rs',
+     '        "figcraft" | "json" | "fig" => {',
+     '        "sharek" | "figcraft" | "json" | "fig" => {'),
+    ('crates/engine/src/cmd/file.rs',
+     'path.push_str(".figcraft");',
+     'path.push_str(".sharek");'),
+    ('crates/engine/src/cmd/file.rs',
+     '(no extension adds .figcraft)',
+     '(no extension adds .sharek)'),
+    ('apps/figcraft-cli/src/files.rs',
+     '        "figcraft" => {\n            let thumb',
+     '        "sharek" | "figcraft" => {\n            let thumb'),
+    ('apps/figcraft-cli/src/files.rs',
+     'if ext(out) == "figcraft" {',
+     'if matches!(ext(out).as_str(), "sharek" | "figcraft") {'),
+    ('apps/figcraft-cli/src/main.rs',
+     'Files: .figcraft (native), ',
+     'Files: .sharek (native; .figcraft opens too), '),
+    ('crates/ui-egui/src/lib.rs',
+     '&format!("{name}.figcraft"), &["figcraft", "fig"]',
+     '&format!("{name}.sharek"), &["sharek", "fig"]'),
+    ('crates/ui-egui/src/lib.rs',
+     'if !p.set_extension("figcraft") {',
+     'if !p.set_extension("sharek") {'),
+    ('crates/ui-egui/src/lib.rs',
+     'i18n::tr("Use the .figcraft or .fig extension.")',
+     'i18n::tr("Use the .sharek or .fig extension.")'),
+    ('crates/ui-egui/src/lib.rs',
+     'i18n::tr("A .figcraft file with this name already exists.',
+     'i18n::tr("A .sharek file with this name already exists.'),
+    ('crates/ui-egui/src/lib.rs',
+     '.is_some_and(|e| e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig"))',
+     '.is_some_and(|e| e.eq_ignore_ascii_case("sharek") || e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig"))'),
+    ('crates/ui-egui/src/lib.rs',
+     '"tif", "tiff", "figcraft", "fig"]',
+     '"tif", "tiff", "sharek", "figcraft", "fig"]'),
+    ('crates/ui-egui/src/lib.rs',
+     'OPEN_EXTENSIONS: &[&str] = &["figcraft", "fig",',
+     'OPEN_EXTENSIONS: &[&str] = &["sharek", "figcraft", "fig",'),
+    ('apps/figcraft/src/services.rs',
+     'if exts == ["figcraft", "fig"] {',
+     'if exts == ["sharek", "fig"] {'),
+    ('apps/figcraft/src/services.rs',
+     '"FigCraft (.figcraft)"',
+     '"sharek (.sharek)"'),
+    ('apps/figcraft/src/services.rs',
+     'let extensions = ["figcraft", "fig"];',
+     'let extensions = ["sharek", "fig"];'),
+    ('packaging/macos/Info.plist.in',
+     '  <key>UTExportedTypeDeclarations</key>\n  <array>\n',
+     EXT_NEW_UTI),
+    ('packaging/macos/Info.plist.in',
+     '<key>CFBundleTypeIconFile</key>\n      <string>FigCraft</string>\n      <key>LSItemContentTypes</key>\n'
+     '      <array><string>ai.storyteller.figcraft.document</string></array>',
+     '<key>CFBundleTypeIconFile</key>\n      <string>sharek-document</string>\n      <key>LSItemContentTypes</key>\n'
+     '      <array><string>ps.creative.studio.sharek.document</string><string>ai.storyteller.figcraft.document</string></array>'),
+    ('packaging/macos/package.sh',
+     'cp "$WORK/FigCraft.icns" "$APP/Contents/Resources/FigCraft.icns"\n',
+     'cp "$WORK/FigCraft.icns" "$APP/Contents/Resources/FigCraft.icns"\n'
+     'cp "$ICONS/sharek-document.icns" "$APP/Contents/Resources/sharek-document.icns"\n'),
+    ('packaging/linux/ai.storyteller.figcraft.mime.xml',
+     '  <mime-type type="application/x-figcraft">',
+     EXT_NEW_MIME + '  <mime-type type="application/x-figcraft">'),
+    ('packaging/linux/ai.storyteller.figcraft.desktop',
+     'MimeType=application/x-figcraft;',
+     'MimeType=application/x-sharek;application/x-figcraft;'),
+    ('packaging/windows/figcraft.wxs',
+     '        <!-- SVG and images: offered under "Open with", never forced as the default. -->',
+     EXT_NEW_PROGID + '        <!-- SVG and images: offered under "Open with", never forced as the default. -->'),
+    ('packaging/windows/figcraft.wxs',
+     r'''<RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".figcraft" Value="" Type="string" />''',
+     r'''<RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".figcraft" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".sharek" Value="" Type="string" />'''),
+    # Test expectations of the default save: the name and the filter are `.sharek` now.
+    ('crates/ui-egui/src/save_as_tests.rs',
+     'Prototype.figcraft".into(), vec!["figcraft".into(), "fig".into()]',
+     'Prototype.sharek".into(), vec!["sharek".into(), "fig".into()]'),
+    ('crates/ui-egui/src/save_as_tests.rs',
+     '("native", "native.figcraft")',
+     '("native", "native.sharek")'),
+    ('crates/ui-egui/src/save_as_tests.rs',
+     'temp.path("existing.figcraft")',
+     'temp.path("existing.sharek")'),
+    ('crates/ui-egui/src/save_as_tests.rs',
+     'Use the .figcraft or .fig extension.',
+     'Use the .sharek or .fig extension.'),
+    ('crates/ui-egui/src/save_as_tests.rs',
+     'A .figcraft file with this name already exists.',
+     'A .sharek file with this name already exists.'),
+    ('crates/engine/src/save_format_tests.rs',
+     'let native = files.path("native.figcraft");',
+     'let native = files.path("native.sharek");'),
+    ('ATTRIBUTION.md',
+     '| `assets/app-icon/` (all files:',
+     '| `assets/app-icon/sharek-document.svg` | Hamza Abu Ayyash (Creative Studio) | original work: the sharek document icon (`file icons/sharek.svg`) | MIT OR Apache-2.0 |\n'
+     '| `assets/app-icon/sharek-document.icns` | Hamza Abu Ayyash (Creative Studio) | the sharek document icon (`assets/app-icon/sharek-document.svg`) rendered with rsvg-convert, packed with iconutil; the document icon of `.sharek` files | MIT OR Apache-2.0 |\n'
+     '| `assets/app-icon/` (all files:'),
+    ('studio/CHANGES.md',
+     'settings folders and the file format keep their upstream names.',
+     'settings folders keep their upstream names; the file format is `.sharek` (below).'),
+    ('studio/CHANGES.md',
+     '- Import report: the warning',
+     '- Documents save as `.sharek`, with their own document icon (`assets/app-icon/sharek-document.*`). `.figcraft`\n'
+     '  and `.fig`, upstream\'s extensions, still open.\n'
+     '- Import report: the warning'),
+]
+# Locale lines whose English text names the extension: the key and the value follow the new name.
+EXT_LOCALE_PREFIXES = ('"Use the .figcraft or .fig extension.', '"A .figcraft file with this name already exists.')
+# New files the rebrand writes (the test for the extension; a rule adds the module that runs it).
+EXT_NEW_FILES = {
+    'crates/engine/src/extension_tests.rs': '''//! Documents save as `.sharek` by default, and a `.figcraft` file still opens.
+
+use serde_json::json;
+
+use crate::Session;
+
+#[test]
+fn save_as_without_extension_writes_sharek_and_figcraft_still_opens() {
+    let dir = std::env::temp_dir().join(format!("sharek-extension-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut s = Session::new();
+    s.execute("shape.rectangle", &json!({"name": "box", "x": 1, "y": 2, "width": 3, "height": 4})).unwrap();
+    s.execute("file.saveAs", &json!({"path": dir.join("doc").to_string_lossy()})).unwrap();
+    let saved = dir.join("doc.sharek");
+    assert!(saved.exists(), "saved as .sharek");
+    // The same contents under upstream's extension open as before.
+    let old = dir.join("old.figcraft");
+    std::fs::copy(&saved, &old).unwrap();
+    let mut t = Session::new();
+    t.execute("file.open", &json!({"path": old.to_string_lossy()})).unwrap();
+    assert_eq!(t.ds().unwrap().path.as_deref(), Some(old.to_string_lossy().as_ref()));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+''',
+}
+EXT_MODULE = ('crates/engine/src/lib.rs', '#[cfg(test)]\nmod save_format_tests;\n',
+              '#[cfg(test)]\nmod extension_tests;\n#[cfg(test)]\nmod save_format_tests;\n')
+
+
+def apply_ext() -> list:
+    changed = []
+    for rel, a, b in EXT_RULES:
+        p = ROOT / rel
+        s = p.read_text(encoding='utf-8')
+        if b in s:
+            continue  # already applied
+        if a not in s:
+            print(f'warning: {rel}: text not found for the extension rule: {a[:70]!r}')
+            continue
+        p.write_text(s.replace(a, b), encoding='utf-8')
+        changed.append(rel)
+    for rel, text in EXT_NEW_FILES.items():
+        p = ROOT / rel
+        if not p.exists() or p.read_text(encoding='utf-8') != text:
+            p.write_text(text, encoding='utf-8')
+            changed.append(rel)
+    rel, a, b = EXT_MODULE
+    p = ROOT / rel
+    s = p.read_text(encoding='utf-8')
+    if 'mod extension_tests;' not in s and a in s:
+        p.write_text(s.replace(a, b, 1), encoding='utf-8')
+        changed.append(rel)
+    for rel in ('apps/figcraft/src/main.rs',):
+        pass
+    for p in sorted((ROOT / 'crates/ui-egui/locales').glob('*.toml')):
+        s = p.read_text(encoding='utf-8')
+        lines = [ln.replace('.figcraft', '.sharek') if ln.startswith(EXT_LOCALE_PREFIXES) else ln
+                 for ln in s.split('\n')]
+        o = '\n'.join(lines)
+        if o != s:
+            p.write_text(o, encoding='utf-8')
+            changed.append(p.relative_to(ROOT).as_posix())
+    return changed
+
+
 def main():
-    changed = apply_rules() + rename_sources()
+    changed = apply_rules() + rename_sources() + apply_ext()
     if write_mark():
         changed.append('crates/ui-egui/src/studio_mark.rs')
     changed += arabic_names.apply(ROOT, NAME, ARABIC)

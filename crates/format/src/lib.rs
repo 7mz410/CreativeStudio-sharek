@@ -35,6 +35,8 @@ use serde_json::{Value, json};
 use sha2::Digest;
 
 pub const EXTENSION: &str = "figcraft";
+/// sharek saves documents as `.sharek` (the same contents as `.figcraft`, which still opens).
+pub const STUDIO_EXTENSION: &str = "sharek";
 pub const FORMAT: &str = "figcraft";
 pub const VERSION: u32 = 1;
 /// Largest archive member we read (guards against zip bombs).

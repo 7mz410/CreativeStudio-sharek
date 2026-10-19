@@ -1756,6 +1756,8 @@ mod rotated_select_tests;
 #[cfg(test)]
 mod rotation_origin_tests;
 #[cfg(test)]
+mod extension_tests;
+#[cfg(test)]
 mod save_format_tests;
 #[cfg(test)]
 mod scale_tool_tests;

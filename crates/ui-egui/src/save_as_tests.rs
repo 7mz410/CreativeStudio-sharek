@@ -73,7 +73,7 @@ fn toast(app: &FigApp) -> &str {
 }
 
 fn expected_picker() -> Vec<(String, String, Vec<String>)> {
-    vec![("Save as".into(), "Prototype.figcraft".into(), vec!["figcraft".into(), "fig".into()])]
+    vec![("Save as".into(), "Prototype.sharek".into(), vec!["sharek".into(), "fig".into()])]
 }
 
 #[test]
@@ -111,7 +111,7 @@ fn a_pathless_engine_request_uses_the_same_platform_picker() {
 #[test]
 fn native_paths_and_an_extensionless_default_save_native_files_and_show_the_written_name() {
     let temp = Temp::new();
-    for (chosen, written) in [("native", "native.figcraft"), ("saved.figcraft", "saved.figcraft"), ("upper.FIGCRAFT", "upper.FIGCRAFT")] {
+    for (chosen, written) in [("native", "native.sharek"), ("saved.figcraft", "saved.figcraft"), ("upper.FIGCRAFT", "upper.FIGCRAFT")] {
         let (mut app, picks) = app(Some(temp.path(chosen)));
         app.save_as_dialog();
         app.poll_dialog(&egui::Context::default());
@@ -197,14 +197,14 @@ fn unsupported_extensions_are_rejected_without_overwriting_the_chosen_file() {
         assert_eq!(app.session.doc().unwrap(), &before);
         assert!(app.session.ds().unwrap().path.is_none());
         assert!(app.session.ds().unwrap().is_dirty());
-        assert_eq!(toast(&app), "Use the .figcraft or .fig extension.");
+        assert_eq!(toast(&app), "Use the .sharek or .fig extension.");
     }
 }
 
 #[test]
 fn adding_the_default_extension_never_overwrites_another_existing_path_without_confirmation() {
     let temp = Temp::new();
-    let path = temp.path("existing.figcraft");
+    let path = temp.path("existing.sharek");
     std::fs::write(&path, b"existing document").unwrap();
     let (mut app, _) = app(Some(temp.path("existing")));
     app.save_as_dialog();
@@ -213,7 +213,7 @@ fn adding_the_default_extension_never_overwrites_another_existing_path_without_c
     assert!(!temp.path("existing").exists());
     assert!(app.session.ds().unwrap().path.is_none());
     assert!(app.session.ds().unwrap().is_dirty());
-    assert_eq!(toast(&app), "A .figcraft file with this name already exists. Choose its full name to confirm replacement.");
+    assert_eq!(toast(&app), "A .sharek file with this name already exists. Choose its full name to confirm replacement.");
 }
 
 #[test]
@@ -306,7 +306,7 @@ fn an_empty_destination_is_rejected_without_writing_or_changing_save_state() {
     assert_eq!(app.session.doc().unwrap(), &before);
     assert!(app.session.ds().unwrap().path.is_none());
     assert!(app.session.ds().unwrap().is_dirty());
-    assert_eq!(toast(&app), "Use the .figcraft or .fig extension.");
+    assert_eq!(toast(&app), "Use the .sharek or .fig extension.");
 }
 
 #[test]

@@ -96,6 +96,12 @@
             <Verb Id="open" Command="Open" TargetFile="FigcraftExe" Argument="&quot;%1&quot;" />
           </Extension>
         </ProgId>
+        <!-- .sharek: sharek's own format (the same contents as .figcraft); sharek is its default app. -->
+        <ProgId Id="Sharek.Document" Description="sharek Document" Icon="FigcraftExe" IconIndex="0">
+          <Extension Id="sharek" ContentType="application/x-sharek">
+            <Verb Id="open" Command="Open" TargetFile="FigcraftExe" Argument="&quot;%1&quot;" />
+          </Extension>
+        </ProgId>
         <!-- SVG and images: offered under "Open with", never forced as the default. -->
         <ProgId Id="Figcraft.Image" Description="Image" Icon="FigcraftExe" IconIndex="0" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Figcraft.Image\shell\open\command" Value="&quot;[#FigcraftExe]&quot; &quot;%1&quot;" Type="string" />
@@ -108,6 +114,7 @@
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe" Name="FriendlyAppName" Value="FigCraft" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\shell\open\command" Value="&quot;[#FigcraftExe]&quot; &quot;%1&quot;" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".figcraft" Value="" Type="string" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".sharek" Value="" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".svg" Value="" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".png" Value="" Type="string" />
         <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".jpg" Value="" Type="string" />

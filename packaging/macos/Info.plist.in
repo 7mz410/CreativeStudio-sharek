@@ -48,6 +48,27 @@
   <!-- FigCraft's own format. -->
   <key>UTExportedTypeDeclarations</key>
   <array>
+    <!-- sharek's document: the same JSON-and-zip file as .figcraft, saved with the .sharek extension. -->
+    <dict>
+      <key>UTTypeIdentifier</key>
+      <string>ps.creative.studio.sharek.document</string>
+      <key>UTTypeDescription</key>
+      <string>sharek Document</string>
+      <key>UTTypeConformsTo</key>
+      <array>
+        <string>public.data</string>
+        <string>public.content</string>
+      </array>
+      <key>UTTypeIconFile</key>
+      <string>sharek-document</string>
+      <key>UTTypeTagSpecification</key>
+      <dict>
+        <key>public.filename-extension</key>
+        <array><string>sharek</string></array>
+        <key>public.mime-type</key>
+        <array><string>application/x-sharek</string></array>
+      </dict>
+    </dict>
     <dict>
       <key>UTTypeIdentifier</key>
       <string>ai.storyteller.figcraft.document</string>
@@ -93,9 +114,9 @@
       <key>LSHandlerRank</key>
       <string>Owner</string>
       <key>CFBundleTypeIconFile</key>
-      <string>FigCraft</string>
+      <string>sharek-document</string>
       <key>LSItemContentTypes</key>
-      <array><string>ai.storyteller.figcraft.document</string></array>
+      <array><string>ps.creative.studio.sharek.document</string><string>ai.storyteller.figcraft.document</string></array>
     </dict>
     <!-- Offered under "Open With", never forced as the default. -->
     <dict>

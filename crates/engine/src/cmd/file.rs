@@ -51,7 +51,7 @@ pub fn specs() -> Vec<CommandSpec> {
         spec!(
             "file.saveAs",
             "Save as",
-            "{path} (no extension adds .figcraft); a .fig path writes an experimental export copy of the shown document with `warnings`, keeping the native path, unsaved changes and version preview",
+            "{path} (no extension adds .sharek); a .fig path writes an experimental export copy of the shown document with `warnings`, keeping the native path, unsaved changes and version preview",
             false,
             save_as
         ),
@@ -694,7 +694,7 @@ fn open(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let (loaded, rest) = load_path(&path, variables.as_ref())?;
     remember(s, &path);
-    let native = !rest && matches!(ext(&path).as_str(), "figcraft" | "json");
+    let native = !rest && matches!(ext(&path).as_str(), "sharek" | "figcraft" | "json");
     let warnings = rest || ext(&path) == "svg";
     // A native file that lost something (a damaged image, say): the app says so, not only the result.
     if native && !loaded.issues.is_empty() {
@@ -872,7 +872,7 @@ fn save_as(s: &mut Session, p: &Value) -> Result<Value> {
     match string(p, "path") {
         Some(mut path) => {
             if ext(&path).is_empty() {
-                path.push_str(".figcraft");
+                path.push_str(".sharek");
             }
             save_to(s, path)
         }
@@ -1272,7 +1272,7 @@ fn import(s: &mut Session, p: &Value) -> Result<Value> {
             }
             Ok(out)
         }
-        "figcraft" | "json" | "fig" => {
+        "sharek" | "figcraft" | "json" | "fig" => {
             let resolver = path.as_deref().map(rest_images);
             let images: figcraft_format::rest::ImageResolver = match &resolver {
                 Some(r) => r,

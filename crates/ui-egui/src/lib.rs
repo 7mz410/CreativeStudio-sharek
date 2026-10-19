@@ -1051,17 +1051,17 @@ impl FigApp {
 
     pub fn save_as_dialog(&mut self) {
         let Ok(name) = self.session.doc().map(|d| d.name.clone()) else { return };
-        self.pick_save(i18n::tr("Save as"), &format!("{name}.figcraft"), &["figcraft", "fig"], |app, mut p| {
+        self.pick_save(i18n::tr("Save as"), &format!("{name}.sharek"), &["sharek", "fig"], |app, mut p| {
             if p.extension().is_none_or(|e| e.is_empty()) {
-                if !p.set_extension("figcraft") {
-                    app.toast(i18n::tr("Use the .figcraft or .fig extension."));
+                if !p.set_extension("sharek") {
+                    app.toast(i18n::tr("Use the .sharek or .fig extension."));
                     return;
                 }
                 // This name wasn't confirmed by the system dialog: don't replace an existing file.
                 match p.try_exists() {
                     Ok(false) => {}
                     Ok(true) => {
-                        app.toast(i18n::tr("A .figcraft file with this name already exists. Choose its full name to confirm replacement."));
+                        app.toast(i18n::tr("A .sharek file with this name already exists. Choose its full name to confirm replacement."));
                         return;
                     }
                     Err(e) => {
@@ -1069,8 +1069,8 @@ impl FigApp {
                         return;
                     }
                 }
-            } else if !p.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig")) {
-                app.toast(i18n::tr("Use the .figcraft or .fig extension."));
+            } else if !p.extension().and_then(|e| e.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("sharek") || e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig")) {
+                app.toast(i18n::tr("Use the .sharek or .fig extension."));
                 return;
             }
             if let Some(r) = app.run("file.saveAs", json!({"path": p.to_string_lossy()})) {
@@ -1116,7 +1116,7 @@ impl FigApp {
         let exts: &[&str] = if place {
             &["png", "jpg", "jpeg", "webp", "gif", "tif", "tiff"]
         } else {
-            &["svg", "png", "jpg", "jpeg", "webp", "gif", "tif", "tiff", "figcraft", "fig"]
+            &["svg", "png", "jpg", "jpeg", "webp", "gif", "tif", "tiff", "sharek", "figcraft", "fig"]
         };
         let title = if place { i18n::tr("Place image") } else { i18n::tr("Import") };
         self.pick_open(title, exts, move |app, p| {
@@ -1692,7 +1692,7 @@ impl FigApp {
 }
 
 /// The file types File ▸ Open and a drop on the home screen open.
-pub(crate) const OPEN_EXTENSIONS: &[&str] = &["figcraft", "fig", "json", "svg", "png", "jpg", "jpeg", "webp", "gif", "tif", "tiff"];
+pub(crate) const OPEN_EXTENSIONS: &[&str] = &["sharek", "figcraft", "fig", "json", "svg", "png", "jpg", "jpeg", "webp", "gif", "tif", "tiff"];
 
 /// Whether `path` names a file type that opens as a document (the extension, in any case).
 pub(crate) fn opens(path: &Path) -> bool {

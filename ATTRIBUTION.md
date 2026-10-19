@@ -12,6 +12,8 @@ MIT OR Apache-2.0. No third-party icon sets are used.
 | Path | Author | Source | Licence | Notes |
 |---|---|---|---|---|
 | `docs/studio/sharek.svg` | Hamza Abu Ayyash (Creative Studio) | Original artwork | MIT OR Apache-2.0 | sharek logo; replaces the upstream brand |
+| `assets/app-icon/sharek-document.svg` | Hamza Abu Ayyash (Creative Studio) | original work: the sharek document icon (`file icons/sharek.svg`) | MIT OR Apache-2.0 |
+| `assets/app-icon/sharek-document.icns` | Hamza Abu Ayyash (Creative Studio) | the sharek document icon (`assets/app-icon/sharek-document.svg`) rendered with rsvg-convert, packed with iconutil; the document icon of `.sharek` files | MIT OR Apache-2.0 |
 | `assets/app-icon/` (all files: `figcraft.svg`, `figcraft-small.svg`, `figcraft-*.png`, `figcraft.ico`, `hicolor/`) | Hamza Abu Ayyash (Creative Studio) | the sharek star (`docs/studio/sharek.svg`) on a white tile, rendered by `packaging/icons.sh` | MIT OR Apache-2.0 | App icon (see `assets/app-icon/README.md`) |
 | `docs/images/` (all screenshots and exports: `shot-*.png`, `art-*.png`) | FigCraft contributors | Screenshots of FigCraft showing synthetic demo documents made in FigCraft, and PNG exports of those documents by FigCraft's renderer | MIT OR Apache-2.0 | No third-party artwork |
 | `examples/*.figcraft` | FigCraft contributors | Synthetic demo documents built through FigCraft's command API; invented copy, shapes and vectors drawn from scratch, no images or embedded fonts | MIT OR Apache-2.0 | Text uses Inter (OFL, from craft-fonts or the system); no third-party artwork |

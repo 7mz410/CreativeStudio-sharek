@@ -5,7 +5,7 @@ this list.
 
 - Branding (user-visible only, applied by `studio/rebrand.py`): the app name sharek, the bundle id
   `ps.creative.studio.sharek`, links to sharek.studio.creative.ps and this repository. Crate names,
-  settings folders and the file format keep their upstream names.
+  settings folders keep their upstream names; the file format is `.sharek` (below).
 - No Discord buttons; community links point to Creative Studio.
 - App icon: the sharek star on navy (`assets/app-icon/`).
 - Removed upstream's ArtCraft brand assets (`docs/brand/`), as their brand terms require of forks.
@@ -21,5 +21,7 @@ this list.
   by `studio/rebrand.py`) replaces the upstream chameleon tail in the logo icon and the About tile.
   English, see `studio/ar-work/TODO.md`). `studio/arabic_names.py` puts the Arabic name شارك in the Arabic catalogs.
 - Loading screen of the web version: the app's star (`studio/` splash, `apps/figcraft-web/index.html`).
+- Documents save as `.sharek`, with their own document icon (`assets/app-icon/sharek-document.*`). `.figcraft`
+  and `.fig`, upstream's extensions, still open.
 - Import report: the warning about image filters names sharek (`crates/format/src/rest/props.rs`), and the
   Spanish catalog carries the two new credit lines in English-to-Spanish form (`studio/rebrand.py`).
