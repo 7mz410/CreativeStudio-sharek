@@ -176,13 +176,17 @@ def renamed_code(text: str) -> str:
     return STRING.sub(lambda m: rename(m.group(0)), text)
 
 
+def squash(text: str) -> str:
+    return re.sub(r'[\s,]', '', text)
+
+
 def apply_rules() -> list:
     changed = []
     for rel, a, b in RULES:
         p = ROOT / rel
         s = p.read_text(encoding='utf-8')
-        if b in s:
-            continue  # already applied
+        if b in s or squash(b) in squash(s):
+            continue  # already applied (squash: rustfmt may rewrap it)
         if a not in s:
             print(f'warning: {rel}: upstream text not found (did upstream change it?): {a[:70]!r}')
             continue
@@ -593,8 +597,8 @@ def apply_ext() -> list:
     for rel, a, b in EXT_RULES:
         p = ROOT / rel
         s = p.read_text(encoding='utf-8')
-        if b in s:
-            continue  # already applied
+        if b in s or squash(b) in squash(s):
+            continue  # already applied (squash: rustfmt may rewrap it)
         if a not in s:
             print(f'warning: {rel}: text not found for the extension rule: {a[:70]!r}')
             continue
