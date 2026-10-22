@@ -3,7 +3,7 @@
 
 use std::path::Path;
 
-use egui::{Align2, Context, CornerRadius, RichText, Sense, Stroke, vec2};
+use egui::{Align2, Color32, Context, CornerRadius, RichText, Sense, Stroke, vec2};
 use figcraft_color::ColorProfile;
 use figcraft_doc::{ExportFormat, ExportSetting, ExportSize, NodeId};
 use figcraft_engine::cmd::file::{export_jobs, exportable_layers};
