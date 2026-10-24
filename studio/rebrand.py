@@ -74,9 +74,6 @@ RULES = [
      f'Name="{NAME}"'),
     # Right-to-left interface (studio/RTL.md): vendor/egui is upstream egui 0.36.2 plus the marked
     # changes. lib.rs turns the switch on each frame for Arabic and mirrors the side panels.
-    ('Cargo.toml',
-     '[workspace]\nresolver = "3"\n',
-     '[patch.crates-io]\n# Creative Studio: egui with a right-to-left switch for the Arabic interface (studio/RTL.md).\negui = { path = "vendor/egui" }\n\n[workspace]\nresolver = "3"\n'),
     ('crates/ui-egui/src/lib.rs',
      '        theme::set_doc_profile(&ctx, self.session.doc().map_or(figcraft_color::ColorProfile::Srgb, |d| d.color_profile));\n',
      '        // Creative Studio: the Arabic interface lays out right to left (studio/RTL.md).\n        egui::set_rtl(i18n::is_rtl());\n        theme::set_doc_profile(&ctx, self.session.doc().map_or(figcraft_color::ColorProfile::Srgb, |d| d.color_profile));\n'),
