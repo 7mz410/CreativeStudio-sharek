@@ -80,26 +80,8 @@ RULES = [
     ('crates/ui-egui/src/lib.rs',
      '        theme::set_doc_profile(&ctx, self.session.doc().map_or(figcraft_color::ColorProfile::Srgb, |d| d.color_profile));\n',
      '        // Creative Studio: the Arabic interface lays out right to left (studio/RTL.md).\n        egui::set_rtl(i18n::is_rtl());\n        theme::set_doc_profile(&ctx, self.session.doc().map_or(figcraft_color::ColorProfile::Srgb, |d| d.color_profile));\n'),
-    ('crates/ui-egui/src/lib.rs',
-     '''            egui::Panel::left("left_rail")
-                .exact_size(56.0)''',
-     '''            // Creative Studio: the start side is the right one in the Arabic interface.
-            let start = if egui::is_rtl() { egui::Panel::right("left_rail") } else { egui::Panel::left("left_rail") };
-            start
-                .exact_size(56.0)'''),
-    ('crates/ui-egui/src/lib.rs',
-     '''        if left_open {
-            edges.push(("left", ui.available_rect_before_wrap().min.x + left_w, left_w, 1.0));
-            egui::Panel::left("left_panel")
-                .resizable(false)''',
-     '''        let rtl = egui::is_rtl();
-        if left_open {
-            let avail = ui.available_rect_before_wrap();
-            let (x, grows) = if rtl { (avail.max.x - left_w, -1.0) } else { (avail.min.x + left_w, 1.0) };
-            edges.push(("left", x, left_w, grows));
-            let panel = if rtl { egui::Panel::right("left_panel") } else { egui::Panel::left("left_panel") };
-            panel
-                .resizable(false)'''),
+    # The Arabic panel placement (rail, left and right panels) is written into lib.rs by hand: the
+    # upstream panel code moved, so no text rule matches it any more.
     ('crates/ui-egui/src/lib.rs',
      '''            edges.push(("right", ui.available_rect_before_wrap().max.x - right_w, right_w, -1.0));
             egui::Panel::right("right_panel")
