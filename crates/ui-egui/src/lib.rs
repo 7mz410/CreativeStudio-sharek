@@ -1210,7 +1210,11 @@ impl FigApp {
                         return;
                     }
                 }
-            } else if !p.extension().and_then(OsStr::to_str).is_some_and(|e| e.eq_ignore_ascii_case("sharek") || e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig")) {
+            } else if !p
+                .extension()
+                .and_then(OsStr::to_str)
+                .is_some_and(|e| e.eq_ignore_ascii_case("sharek") || e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig"))
+            {
                 app.toast(i18n::tr("Use the .sharek or .fig extension."));
                 return;
             }
@@ -1685,30 +1689,36 @@ impl FigApp {
             let (x, grows) = if rtl { (avail.max.x - left_w, -1.0) } else { (avail.min.x + left_w, 1.0) };
             edges.push(("left", x, left_w, grows));
             let panel = if rtl { egui::Panel::right("left_panel") } else { egui::Panel::left("left_panel") };
-            panel.resizable(false).exact_size(left_w).frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border))).show(ui, |ui| {
-                let label = match self.ui.left_tab {
-                    _ if self.ui.versions.open => i18n::tr("Version history"),
-                    LeftTab::File => i18n::tr("Layers"),
-                    LeftTab::Assets => i18n::tr("Assets"),
-                };
-                a11y::region(&mut self.ui.nav, ui, a11y::Region::Layers, egui::accesskit::Role::Pane, label);
-                layers::left_panel(self, ui)
-            });
+            panel.resizable(false).exact_size(left_w).frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border))).show(
+                ui,
+                |ui| {
+                    let label = match self.ui.left_tab {
+                        _ if self.ui.versions.open => i18n::tr("Version history"),
+                        LeftTab::File => i18n::tr("Layers"),
+                        LeftTab::Assets => i18n::tr("Assets"),
+                    };
+                    a11y::region(&mut self.ui.nav, ui, a11y::Region::Layers, egui::accesskit::Role::Pane, label);
+                    layers::left_panel(self, ui)
+                },
+            );
         }
         if right_open {
             let avail = ui.available_rect_before_wrap();
             let (x, grows) = if rtl { (avail.min.x + right_w, 1.0) } else { (avail.max.x - right_w, -1.0) };
             edges.push(("right", x, right_w, grows));
             let panel = if rtl { egui::Panel::left("right_panel") } else { egui::Panel::right("right_panel") };
-            panel.resizable(false).exact_size(right_w).frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border))).show(ui, |ui| {
-                let label = match self.ui.right_tab {
-                    RightTab::Design => i18n::tr("Design"),
-                    RightTab::Prototype => i18n::tr("Prototype"),
-                    RightTab::Inspect => i18n::tr("Dev Mode"),
-                };
-                a11y::region(&mut self.ui.nav, ui, a11y::Region::Properties, egui::accesskit::Role::Pane, label);
-                right::right_panel(self, ui)
-            });
+            panel.resizable(false).exact_size(right_w).frame(egui::Frame::NONE.fill(t.panel).stroke(egui::Stroke::new(1.0, t.border))).show(
+                ui,
+                |ui| {
+                    let label = match self.ui.right_tab {
+                        RightTab::Design => i18n::tr("Design"),
+                        RightTab::Prototype => i18n::tr("Prototype"),
+                        RightTab::Inspect => i18n::tr("Dev Mode"),
+                    };
+                    a11y::region(&mut self.ui.nav, ui, a11y::Region::Properties, egui::accesskit::Role::Pane, label);
+                    right::right_panel(self, ui)
+                },
+            );
         }
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
             let worker = self.worker.take();

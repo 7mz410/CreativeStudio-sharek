@@ -1693,6 +1693,8 @@ mod export_depth_tests;
 #[cfg(test)]
 mod extended_chain_tests;
 #[cfg(test)]
+mod extension_tests;
+#[cfg(test)]
 mod fig_export_assets_tests;
 #[cfg(test)]
 mod fig_export_tests;
@@ -1840,8 +1842,6 @@ mod rotated_guides_tests;
 mod rotated_select_tests;
 #[cfg(test)]
 mod rotation_origin_tests;
-#[cfg(test)]
-mod extension_tests;
 #[cfg(test)]
 mod save_format_tests;
 #[cfg(test)]
