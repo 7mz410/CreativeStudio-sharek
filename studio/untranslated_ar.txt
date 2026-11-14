@@ -1,0 +1,137 @@
+[ui] 1 year
+[ui] 30 days
+[ui] 90 days
+[ui] A layer in an auto layout frame is placed by its frame
+[ui] Allow and download
+[ui] Allow downloading fonts?
+[ui] Alt+double-click an edge of an auto layout child
+[ui] Annotation
+[ui] Anyone on your network with this code can look at the file, not change it, while this app stays open.
+[ui] Auto: as many words as fit on each line
+[ui] Auto: by the first letter with a direction
+[ui] Balance
+[ui] Balance: every line close to the same length
+[ui] Board grid
+[ui] Calculated from other variables; it follows them
+[ui] Changed {date}
+[ui] Copied comments for AI
+[ui] Copy browser link
+[ui] Copy for AI
+[ui] Couldn't reach {server} for its team list.
+[ui] Crop image
+[ui] Ctrl+Alt+← ↑ → ↓
+[ui] Ctrl+click a padding field
+[ui] Delete {n} variables
+[ui] Detach calculation
+[ui] Disconnected. Reconnecting…
+[ui] Disconnected. Your edits stay here and sync when the connection returns. Reconnecting…
+[ui] Dismiss
+[ui] Double-click an edge of an auto layout frame
+[ui] Download
+[ui] Downloading… {percent}%
+[ui] Drop to use this image
+[ui] Duplicate group
+[ui] Edit padding on all sides
+[ui] Edit variables
+[ui] Enter / Shift+Enter
+[ui] Everyone who reaches this server can open these files while they are shared.
+[ui] Expand the interface
+[ui] Extra large
+[ui] FigCraft stopped because of an internal error.
+[ui] Free fonts come from Google Fonts and Noto, through jsDelivr and GitHub. Each file is checked against the font index before it is installed into the font folder the Craft apps share. Nothing is downloaded until you allow it.
+[ui] Graph paper
+[ui] Hide UI
+[ui] Huge
+[ui] Invert zoom direction
+[ui] Joining live session…
+[ui] Large
+[ui] Left to right
+[ui] Link copied: it opens the file in FigCraft
+[ui] Link copied: it opens the file in the browser
+[ui] Medium
+[ui] Move out of any group
+[ui] Move to group {group}
+[ui] Move up or down while dragging its label
+[ui] No comments to copy
+[ui] No scope is shared by all the selected variables
+[ui] Nobody shares a file there now.
+[ui] Not connected: {reason}. Your work is still in this tab.
+[ui] Not now
+[ui] Nothing counted yet
+[ui] Nothing to pick: the page is empty
+[ui] Past 30 days
+[ui] Past 90 days
+[ui] Past year
+[ui] Pick select: Tab and Shift+Tab move between layers, Enter goes into one, Shift+Enter out, Space selects, Escape cancels
+[ui] Pick select: into a layer, out to its parent
+[ui] Pick select: next or previous layer
+[ui] Pick select: select the picked layer
+[ui] Pretty
+[ui] Pretty: full lines, no one word alone on the last
+[ui] Properties copied
+[ui] Reload the page to get back the unsaved files the browser had room for.
+[ui] Reload the page to get your unsaved files back.
+[ui] Reload the page to start again.
+[ui] Remove all auto layout
+[ui] Reset grid
+[ui] Retry now
+[ui] Right to left
+[ui] Rotate a degree (Shift: 15)
+[ui] Same as file ({profile})
+[ui] Save a copy…
+[ui] Scope
+[ui] Scope: all supported properties
+[ui] Scope: hidden from pickers
+[ui] Scope: only {scope}
+[ui] Scrub a field faster (2x) or slower (1/2, 1/4)
+[ui] Scrubbing at 1/2
+[ui] Scrubbing at 1/4
+[ui] Scrubbing at 1x
+[ui] Scrubbing at 2x
+[ui] Select a row, a column or a full grid of three or more layers, outside an auto layout flow
+[ui] Selection box: switch to pick select
+[ui] Set fill container
+[ui] Set hug contents
+[ui] Shared by your team on {server}
+[ui] Show and move the placement crosshair (its tool chosen, nothing selected)
+[ui] Small
+[ui] Space
+[ui] Strong line every
+[ui] Tab or Ctrl+Space again
+[ui] Text direction
+[ui] The bars are hidden. {shortcut} shows them again
+[ui] This link opens your mail app to write a message:
+[ui] This server doesn't count detached instances
+[ui] This server doesn't count insertions
+[ui] This server doesn't count styles and variables
+[ui] Upload from computer
+[ui] Wrap style
+[ui] Your unsaved files were too large for the browser to keep.
+[ui] connector labels without a saved snapshot are centred on the line, without their background
+[ui] elbowed and curved connectors without a saved path follow FigCraft's own routing
+[ui] invalid vector region fill paint list; layer fill used
+[ui] invalid vector region paints were skipped
+[ui] linked vector region fill styles keep resolved appearance; live style links were left out
+[ui] note or shape generated child has invalid bounds; child skipped
+[ui] note or shape generated child is missing its style or bounds; child skipped
+[ui] note or shape generated children exceed the layer or nesting limit; remaining children skipped
+[ui] note or shape generated layout is missing or unsupported; using its outer frame
+[ui] shape generated outline is missing or damaged; using its rectangle
+[ui] shape with text layers import as frames with their text
+[ui] sticky layers import as frames with their text
+[ui] variable-bound vector region paints keep resolved appearance; live bindings were left out
+[ui] vector region paint data exceeded import limits and was skipped
+[ui] vector region references a missing fill style; layer fill used
+[ui] {count} in it now · Changed {date}
+[ui] {insertions} · {detachments}
+[ui] {name}, disconnected from its live session
+[ui] {n} detached
+[ui] {n} inserted
+[ui] {period}: {counts}
+[ui] {used} · {detached}
+[ui] {used} · {inserted}
+[ui] ↵ / ⇧↵
+[ui] ⇥ or ⌥ Space again
+[ui] ⌘ click a padding field
+[ui] ⌥ double-click an edge of an auto layout child
+[ui] ⌥⌘ ← ↑ → ↓

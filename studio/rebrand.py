@@ -51,10 +51,10 @@ RULES = [
     ('crates/ui-egui/src/dialogs.rs',
      '    ui.hyperlink_to(tr("Join us on Discord"), "https://discord.gg/artcraft");',
      f'    ui.hyperlink_to(tr("Source code on GitHub"), "{REPO}");'),
-    ('crates/ui-egui/src/lib.rs',
+    ('crates/ui-egui/src/app/commands.rs',
      '"open.help" => self.services.open_url("https://getartcraft.com/apps/figcraft"),',
      f'"open.help" => self.services.open_url("{APP_SITE}"),'),
-    ('crates/engine/src/live.rs',
+    ('crates/engine/src/sharing/live/types.rs',
      '    None => "wss://collab.craftapps.dev/",',
      '    None => "",'),
     ('apps/figcraft/build.rs',
@@ -94,7 +94,7 @@ RULES = [
     ('crates/ui-egui/src/lib.rs',
      'pub mod style_picker;\n',
      'pub mod studio_mark;\npub mod style_picker;\n'),
-    ('crates/ui-egui/src/icons.rs',
+    ('crates/ui-egui/src/icons/draw.rs',
      '''        Logo => {
             // FigCraft's own mark: the curled tail of the chameleon on the app icon. One bold
             // stroke: a shaft along the bottom, then three half turns, each tighter than the last.
@@ -124,6 +124,15 @@ RULES = [
     ('crates/format/src/rest/props.rs',
      "cx.warn(\"image filters use FigCraft's approximate renderer\");",
      "cx.warn(\"image filters use sharek's approximate renderer\");"),
+    ('apps/figcraft/src/startup_tests.rs',
+     'unsetting it lets FigCraft choose.',
+     f'unsetting it lets {NAME} choose.'),
+    ('apps/figcraft/src/startup_tests.rs',
+     'start FigCraft from a Command Prompt with:',
+     f'start {NAME} from a Command Prompt with:'),
+    ('crates/engine/src/comments_polish_tests.rs',
+     '# FigCraft feedback',
+     f'# {NAME} feedback'),
 ]
 
 # The locale catalogs: the About text is a new key (its English is the new text; other
@@ -163,6 +172,8 @@ def apply_rules() -> list:
     changed = []
     for rel, a, b in RULES:
         p = ROOT / rel
+        if not p.exists():
+            continue
         s = p.read_text(encoding='utf-8')
         if b in s or squash(b) in squash(s):
             continue  # already applied (squash: rustfmt may rewrap it)
@@ -429,13 +440,13 @@ EXT_RULES = [
     ('crates/format/src/thumbnail.rs',
      '"figcraft" => FileKind::FigCraft,',
      '"sharek" | "figcraft" => FileKind::FigCraft,'),
-    ('crates/engine/src/cmd/file.rs',
+    ('crates/engine/src/cmd/file/open.rs',
      'matches!(ext(&path).as_str(), "figcraft" | "json")',
      'matches!(ext(&path).as_str(), "sharek" | "figcraft" | "json")'),
-    ('crates/engine/src/cmd/file.rs',
-     '        "figcraft" | "json" | "fig" => {',
-     '        "sharek" | "figcraft" | "json" | "fig" => {'),
-    ('crates/engine/src/cmd/file.rs',
+    ('crates/engine/src/cmd/file/open.rs',
+     '        "figcraft" | "json" | "fig" | "jam" | "sketch" | "penpot" => {',
+     '        "sharek" | "figcraft" | "json" | "fig" | "jam" | "sketch" | "penpot" => {'),
+    ('crates/engine/src/cmd/file/save.rs',
      'path.push_str(".figcraft");',
      'path.push_str(".sharek");'),
     ('crates/engine/src/cmd/file.rs',
@@ -447,30 +458,27 @@ EXT_RULES = [
     ('apps/figcraft-cli/src/files.rs',
      'if ext(out) == "figcraft" {',
      'if matches!(ext(out).as_str(), "sharek" | "figcraft") {'),
-    ('apps/figcraft-cli/src/main.rs',
+    ('apps/figcraft-cli/src/args.rs',
      'Files: .figcraft (native), ',
      'Files: .sharek (native; .figcraft opens too), '),
-    ('crates/ui-egui/src/lib.rs',
+    ('crates/ui-egui/src/app/files.rs',
      '&format!("{name}.figcraft"), &["figcraft", "fig"]',
      '&format!("{name}.sharek"), &["sharek", "fig"]'),
-    ('crates/ui-egui/src/lib.rs',
+    ('crates/ui-egui/src/app/files.rs',
      'if !p.set_extension("figcraft") {',
      'if !p.set_extension("sharek") {'),
-    ('crates/ui-egui/src/lib.rs',
+    ('crates/ui-egui/src/app/files.rs',
      'i18n::tr("Use the .figcraft or .fig extension.")',
      'i18n::tr("Use the .sharek or .fig extension.")'),
-    ('crates/ui-egui/src/lib.rs',
+    ('crates/ui-egui/src/app/files.rs',
      'i18n::tr("A .figcraft file with this name already exists.',
      'i18n::tr("A .sharek file with this name already exists.'),
-    ('crates/ui-egui/src/lib.rs',
-     '.is_some_and(|e| e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig"))',
-     '.is_some_and(|e| e.eq_ignore_ascii_case("sharek") || e.eq_ignore_ascii_case("figcraft") || e.eq_ignore_ascii_case("fig"))'),
-    ('crates/ui-egui/src/lib.rs',
-     '"tif", "tiff", "figcraft", "fig"]',
-     '"tif", "tiff", "sharek", "figcraft", "fig"]'),
-    ('crates/ui-egui/src/lib.rs',
-     'OPEN_EXTENSIONS: &[&str] = &["figcraft", "fig",',
-     'OPEN_EXTENSIONS: &[&str] = &["sharek", "figcraft", "fig",'),
+    ('crates/ui-egui/src/open.rs',
+     '.is_some_and(|e| ["figcraft", "fig",',
+     '.is_some_and(|e| ["sharek", "figcraft", "fig",'),
+    ('crates/ui-egui/src/open.rs',
+     'OPEN_EXTENSIONS: &[&str] =\n    &["figcraft", "fig",',
+     'OPEN_EXTENSIONS: &[&str] =\n    &["sharek", "figcraft", "fig",'),
     ('apps/figcraft/src/services.rs',
      'if exts == ["figcraft", "fig"] {',
      'if exts == ["sharek", "fig"] {'),
@@ -502,9 +510,9 @@ EXT_RULES = [
      '        <!-- SVG and images: offered under "Open with", never forced as the default. -->',
      EXT_NEW_PROGID + '        <!-- SVG and images: offered under "Open with", never forced as the default. -->'),
     ('packaging/windows/figcraft.wxs',
-     r'''<RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".figcraft" Value="" Type="string" />''',
-     r'''<RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".figcraft" Value="" Type="string" />
-        <RegistryValue Root="HKLM" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".sharek" Value="" Type="string" />'''),
+     r'''<RegistryValue Root="HKMU" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".figcraft" Value="" Type="string" />''',
+     r'''<RegistryValue Root="HKMU" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".figcraft" Value="" Type="string" />
+        <RegistryValue Root="HKMU" Key="Software\Classes\Applications\figcraft.exe\SupportedTypes" Name=".sharek" Value="" Type="string" />'''),
     # Test expectations of the default save: the name and the filter are `.sharek` now.
     ('crates/ui-egui/src/save_as_tests.rs',
      'Prototype.figcraft".into(), vec!["figcraft".into(), "fig".into()]',
@@ -575,6 +583,8 @@ def apply_ext() -> list:
     changed = []
     for rel, a, b in EXT_RULES:
         p = ROOT / rel
+        if not p.exists():
+            continue
         s = p.read_text(encoding='utf-8')
         if b in s or squash(b) in squash(s):
             continue  # already applied (squash: rustfmt may rewrap it)
